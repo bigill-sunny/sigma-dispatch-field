@@ -18,7 +18,33 @@ function render() {
   command.innerHTML='<span class="small muted">Toronto time</span><span class="clock">'+formatTime(Date.now())+'</span>';
   document.querySelector('#screen').innerHTML=({admin:adminView,guard:guardView,client:clientView})[view.role]();if(view.role==='client')priority();
   renderChat();
+  updateUrgentBanner();
   updateRushCountdown();
+}
+
+function updateUrgentBanner() {
+  const banner=document.querySelector('#urgent-banner');
+  const summary=document.querySelector('#urgent-summary');
+  const guard=account?.role==='guard';
+  const matches=guard?guardStaffingOffers():[];
+  const companyCount=guard?currentCompanyAnnouncements().length:0;
+  let message='';
+  if(guard&&(companyCount||matches.length)){
+    const companyLabel=companyCount?companyCount+' company-wide staffing '+(companyCount===1?'alert':'alerts')+' · ':'';
+    message=companyLabel+(matches.length?matches.length+' '+(matches.length===1?'shift':'shifts')+' available to you':'No matching shifts for you');
+  }
+  if(account&&!guard){
+    const requests=data.requests.filter(r=>r.start>data.now&&confirmedCount(r)<r.need&&(r.rush||companyAlertUntil(r,data.now)));
+    const urgent=requests.filter(r=>r.rush).length;
+    const other=requests.length-urgent;
+    const parts=[];
+    if(urgent)parts.push(urgent+' urgent staffing '+(urgent===1?'request':'requests')+' awaiting coverage');
+    if(other)parts.push(other+' '+(other===1?'booking':'bookings')+' open for staffing');
+    message=parts.join(' · ');
+  }
+  banner.hidden=!message;
+  banner.querySelector('button').hidden=!matches.length;
+  if(summary.textContent!==message)summary.textContent=message;
 }
 
 function priority(){const f=document.querySelector('#create-request')?.elements;if(!f)return;let note='';try{const diff=localTime(f.date.value,f.time.value)-data.now;note=diff<=0?'Choose a future start.':diff<=2*hour?'Starts within two hours. Automatically flagged as urgent.':f.rush.value==='urgent'?'Urgent dispatch requested.':'Regular dispatch.';}catch{}document.querySelector('#priority-note').textContent=note;}
@@ -180,7 +206,7 @@ document.addEventListener('click',event=>{
   if(action==='logout'){signOut();return;}
   if(!account)return;
   if(handleChatAction(action,id))return;
-  if(action==='guard-tab'){view.guardTab=id;render();window.scrollTo(0,0);document.querySelector(`[data-action=guard-tab][data-id="${id}"]`)?.focus();return;}
+  if(action==='guard-tab'||action==='staffing-offers'&&view.role==='guard'){view.guardTab=id;render();window.scrollTo(0,0);document.querySelector(`[data-action=guard-tab][data-id="${id}"]`)?.focus();return;}
   if(action==='alert-device'&&view.role==='guard'){toggleRushSound();return;}
   const r=byId(id);
   if(action==='extract'&&view.role==='client'){
@@ -270,10 +296,11 @@ document.addEventListener('submit',event=>{
 const requestApi=typeof standaloneRequest==='function'?standaloneRequest:fetch;
 const roleTitles={admin:'Dispatch Admin',client:'Client Portal',guard:'Guard Account'};
 const apiOptions=body=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-let account=null, revision=-1, busy=false, generation=0;
+let account=null, revision=-1, busy=false, generation=0, projectionDay=null;
 
 function showLogin() {
   clearTravelAlerts();
+  resetRushAlerts();
   account=null;
   revision=-1;
   generation++;
@@ -281,6 +308,7 @@ function showLogin() {
   sites=[]; clients={}; guards=[];
   view.checked.clear();
   resetChat();
+  updateUrgentBanner();
   document.querySelector('#command').innerHTML='';
   document.querySelector('#account').innerHTML='';
   document.querySelector('#screen').innerHTML=`
@@ -335,6 +363,7 @@ async function signOut() {
 
 function install(record) {
   if(account?.id!==record.account.id){
+    resetRushAlerts(record.account.role==='guard'?record.account.id:null);
     view.checked.clear();
     resetChat();
     Object.assign(view,{mobileDetail:false,selected:1,search:'',status:'all',page:0,template:null,prefill:{},guardTab:'shifts',scheduleMode:'Agenda',calendarDate:null});
@@ -344,6 +373,7 @@ function install(record) {
   ({sites,clients,guards}=record.catalog);
   data=record.state;
   revision=record.revision;
+  projectionDay=inputDate(data.now);
   if(!byId(view.selected))view.selected=data.requests[0]?.id;
 }
 
@@ -371,13 +401,14 @@ async function submitAction(action,id='',extra='',fields={}) {
 async function refresh() {
   if(busy)return;
   const before=generation;
+  const dateChanged=account&&projectionDay!==inputDate(Date.now());
   try{
-    const reply=await requestApi('/api/state?since='+revision+'&account='+(account?.id||''),{cache:'no-store'});
+    const reply=await requestApi('/api/state?since='+(dateChanged?-1:revision)+'&account='+(account?.id||''),{cache:'no-store'});
     if(busy||generation!==before||reply.status===204)return;
     if(reply.status===401){if(account||!document.querySelector('#login'))showLogin();return;}
     if(!reply.ok)throw Error('Schedule unavailable.');
     const record=await reply.json();
-    if(busy||generation!==before||record.account.id===account?.id&&record.revision<=revision)return;
+    if(busy||generation!==before||record.account.id===account?.id&&(record.revision<revision||(!dateChanged&&record.revision===revision)))return;
     const selector='#screen form input,#screen form textarea,#screen form select,#email';
     const drafts=record.account.id===account?.id?[...document.querySelectorAll(selector)].map(el=>({
       id:el.id,name:el.name,form:el.form?.id||el.form?.dataset.swap,kind:el.type,value:el.value,checked:el.checked,
@@ -442,6 +473,7 @@ function startApp() {
     }
     const clock=document.querySelector('.clock');
     if(clock)clock.textContent=formatTime(data.now);
+    updateUrgentBanner();
     updateRushCountdown();
     updateShiftAlerts();
   },1000);

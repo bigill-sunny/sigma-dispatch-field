@@ -64,6 +64,12 @@ const formatDay=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto'
 const shiftTime=(r)=>`${formatDay(r.start)} · ${formatTime(r.start)}–${inputDate(r.start)===inputDate(r.end)?'':formatDay(r.end)+' '}${formatTime(r.end)}`;
 const open=(r)=>r.need-r.assignments.length;
 const isPast=(r)=>r.start<=data.now;
+function companyAlertUntil(r,now) {
+  if(r.start<=now||r.need<=(r.confirmed??r.assignments.length))return 0;
+  if(inputDate(r.start)===inputDate(now))return r.start;
+  const received=r.receivedAt??r.history?.find(event=>event.status==='Received')?.at;
+  return received<=now&&received+day>now?Math.min(r.start,received+day):0;
+}
 const overlaps=(a,b)=>a.start<b.end&&b.start<a.end;
 const safe=(val)=>String(val??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
@@ -516,8 +522,11 @@ const guardActions={
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
-    insist(activeOffer(offerFor(r,g)),'This offer is no longer active.');
-    offerFor(r,g).status='Declined';recordEvent(r,'Rejected offer',g.id);
+    const offer=offerFor(r,g);
+    const canDeclineAnnouncement=!offer&&companyAlertUntil(r,data.now)&&(!r.rush||preferencesFor(g.id).rush)&&!eligibility(g,r).length;
+    insist(activeOffer(offer)||canDeclineAnnouncement,'This offer is no longer active.');
+    r.offers[g.id]={...offer,status:'Declined',at:data.now};
+    recordEvent(r,'Rejected offer',g.id);
     audit(`${g.name} declined an offer.`);
     return 'Offer declined.';
   },
@@ -594,17 +603,21 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
   const g=guardBy(account.guard);
-  const requests=[];
+  const requests=[],companyAnnouncements=[];
   for(const r of data.requests){
     const mine=r.assignments.find(a=>a.guard===g.id);
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const announcementUntil=companyAlertUntil(r,data.now);
+    if(announcementUntil&&!mine&&!volunteered&&offer?.status!=='Declined'){
+      companyAnnouncements.push({id:r.id,until:announcementUntil});
+    }
     const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
     const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
@@ -619,7 +632,7 @@ function project(snapshot,account) {
     const {area,uniform,name,notes}=siteBy(r.site);
     const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,announcementUntil,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -631,14 +644,14 @@ function project(snapshot,account) {
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
   const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
-  const state={now:data.now,notices,requests,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
+  const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
 const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
-  if(command.revision===revision)return true;
+  if(command.revision===revision||command.action==='create-request')return true;
   const r=snapshot.requests.find(request=>request.id===Number(command.id));
   return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
 }

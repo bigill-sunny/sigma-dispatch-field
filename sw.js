@@ -1,4 +1,4 @@
-const shellCache='sigma-shell-v3';
+const shellCache='sigma-shell-v4';
 const shell=['/','/model.js','/app.js','/guard.js','/chat.js','/attendance-ui.js','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 
 self.addEventListener('install',event=>{

@@ -62,6 +62,37 @@ async function run(){
       const shownWeek=await admin.evaluate(()=>view.weekOffset||0);
       if(shiftWeek!==shownWeek)await admin.locator('[data-action=week][data-id="'+Math.sign(shiftWeek-shownWeek)+'"]').click();
       await admin.locator('#week-board [data-action=select][data-id="'+id+'"]').first().click();
+      if(i===0){
+        await client.locator('#urgent-banner').getByText(/urgent staffing request.*awaiting coverage/).waitFor();
+        await admin.locator('#urgent-banner').getByText(/urgent staffing request.*awaiting coverage/).waitFor();
+        const listedGuard=await admin.evaluate(id=>availableForWave(byId(id))[0]?.id,id);
+        assert(Number.isInteger(listedGuard),'Expected an eligible guard outside the first wave');
+        await login(guard,listedGuard,'Guard');
+        await guard.locator('#urgent-banner').getByText(/company-wide staffing alert.*available to you/).waitFor();
+        await guard.getByRole('button',{name:'View available shifts'}).click();
+        await guard.locator('.rush-banner [data-action=volunteer][data-id="'+id+'"]').waitFor();
+        await guard.locator('.rush-banner').getByText('Open rush shift').waitFor();
+        assert.equal(await guard.locator('.rush-banner [data-reply-deadline]').count(),0);
+        await guard.locator('[data-action=guard-tab][data-id=shifts]').click();
+        await guard.getByRole('button',{name:'Enable alert sound and vibration'}).click();
+        await guard.reload();
+        await guard.getByRole('button',{name:'Mute alert sound and vibration'}).waitFor();
+        console.log('The site-wide rush alert appeared for client, dispatch and an eligible non-invitee.');
+      }
+      if(i===1){
+        await client.locator('#urgent-banner').getByText(/booking.*open for staffing/).waitFor();
+        await login(guard,3001,'Guard');
+        await guard.waitForFunction(id=>data.companyAnnouncements.some(alert=>alert.id===id),id);
+        assert.equal(await guard.evaluate(id=>data.requests.some(request=>request.id===id),id),false,'Ineligible guard should only receive a generic alert');
+        const listedGuard=await admin.evaluate(id=>availableForWave(byId(id))[0]?.id,id);
+        assert(Number.isInteger(listedGuard),'Expected an eligible guard for a future booking');
+        await login(guard,listedGuard,'Guard');
+        await guard.getByRole('button',{name:'View available shifts'}).click();
+        await guard.locator('[data-action=decline][data-id="'+id+'"]').click();
+        await guard.waitForFunction(id=>!data.companyAnnouncements.some(alert=>alert.id===id),id);
+        await admin.waitForFunction(id=>Object.values(byId(id).offers).some(offer=>offer.status==='Declined'),id);
+        console.log('A future booking alerted all guards, protected details and recorded an eligible decline.');
+      }
       const guardId=await admin.evaluate(({id,rush})=>{
         const r=byId(id);return rush?Number(Object.keys(r.offers)[0]):availableForWave(r)[0]?.id;
       },{id,rush});

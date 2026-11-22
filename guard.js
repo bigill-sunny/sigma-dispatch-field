@@ -4,10 +4,13 @@ const guardTabs=[
 const guardAssignments=()=>data.requests.filter(r=>r.mine).sort((a,b)=>a.start-b.start);
 const guardOpenShifts=()=>data.requests.filter(r=>r.canVolunteer&&(!r.rush||!activeOffer(r.offer))).sort((a,b)=>a.start-b.start);
 const rushOffers=()=>data.requests.filter(r=>r.rush&&activeOffer(r.offer)).sort((a,b)=>a.offer.expires-b.offer.expires);
+const guardRushAlerts=()=>[...rushOffers(),...guardOpenShifts().filter(r=>r.rush&&!r.offer&&!isPast(r))];
+const currentCompanyAnnouncements=()=>(data.companyAnnouncements||[]).filter(a=>a.until>data.now);
+const guardStaffingOffers=()=>[...guardRushAlerts(),...guardOpenShifts().filter(r=>!r.rush&&r.announcementUntil>data.now)];
 const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
-  const rush=rushOffers();
+  const rush=guardRushAlerts();
   return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
@@ -16,14 +19,19 @@ function guardView() {
 
 function offerActions(r) {
   return `<div class="actions offer-actions">
-    ${r.canVolunteer?button(r.rush?'I can cover this':'Request shift','volunteer',r.id,'','primary'):tag('Eligibility changed','warn')}
-    ${r.rush&&activeOffer(r.offer)?button('Decline','decline',r.id):''}
+    ${r.canVolunteer?button(r.rush||r.announcementUntil>data.now?'I can cover this':'Request shift','volunteer',r.id,'','primary'):tag('Eligibility changed','warn')}
+    ${(activeOffer(r.offer)||(!r.offer&&r.canVolunteer&&r.announcementUntil>data.now))?button('Decline','decline',r.id):''}
   </div>`;
+}
+function rushDeadline(r) {
+  return activeOffer(r.offer)
+    ? `<span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span>`
+    : tag('Open rush shift','rush');
 }
 function rushBanner(r,count) {
   const {area,uniform}=r.location;
   return `<aside class="rush-banner" aria-label="Rush shift offer">
-    <div class="row"><strong>Rush shift · ${safe(area)}</strong><span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div>
+    <div class="row"><strong>Rush shift · ${safe(area)}</strong>${rushDeadline(r)}</div>
     <p>${shiftTime(r)} · ${safe(uniform)} · ${r.eta} min ETA</p>
     <p class="small">Site name and instructions appear after approval.${count>1?' More offers in Offers &amp; swaps.':''}</p>
     ${offerActions(r)}
@@ -37,7 +45,7 @@ function updateRushCountdown() {
     el.textContent=seconds?'Reply in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'Reply window closed';
     if(!seconds)for(const btn of el.closest('.rush-banner, .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
   }
-  signalRush();
+  signalStaffingAlerts();
 }
 function guardCalendarStatus(r){
   if(r.mine)return 'booked';
@@ -119,19 +127,19 @@ function guardSchedule() {
       return `<div class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${calendarMarker(status,label)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${status==='available'?offerActions(r):''}</div>`;
     }).join('')}</section><section class="card"><h2>Shift notifications on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
     ${phoneSupported?button(phoneOn?'Turn phone alerts off':'Turn phone alerts on','phone-alert'):''}
-    ${button(alertGuard===account.id?'Mute in-app alerts':'Enable in-app alerts','alert-device')}</div></section>`;
+    ${button(alertGuard===account.id?'Mute alert sound and vibration':'Enable alert sound and vibration','alert-device')}</div></section>`;
 }
 function regularOfferCard(r) {
   const {area,uniform}=r.location;
   return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
-  const regular=guardOpenShifts();
-  const otherRush=rushOffers().slice(1);
+  const regular=guardOpenShifts().filter(r=>!r.rush);
+  const otherRush=guardRushAlerts().slice(1);
   const waiting=data.requests.filter(r=>r.offer?.status==='Volunteered');
   return `<section class="card"><h2>Open shifts and swap pool</h2>
     <p class="sub">Site name and instructions appear after approval.</p>
-    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong><span data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
+    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong>${rushDeadline(r)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
     ${regular.map(regularOfferCard).join('')}
     ${data.poolSwaps.map(s=>`<article class="entry"><strong>${safe(s.location.area)} · Swap pool</strong><p class="sub">${shiftTime(s)} · ${safe(s.location.uniform)}</p>${button('Claim pool swap','claim',s.id,'','primary')}</article>`).join('')}
     ${waiting.map(r=>`<article class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${tag('Awaiting admin approval','warn')}</div><p class="sub">${shiftTime(r)}</p></article>`).join('')}
@@ -174,27 +182,50 @@ function guardLeave() {
   </section>`;
 }
 
-let alertGuard=null, alertAudio=null, seenRush=new Set();
-function toggleRushSound() {
-  if(alertGuard===account.id){alertGuard=null;render();return;}
-  alertGuard=account.id;
-  seenRush=new Set(rushOffers().map(r=>r.id+':'+r.offer.replyDeadline));
+let alertGuard=null, alertAudio=null;
+const seenRush=new Set();
+const rushSoundKey=id=>'sigma-rush-sound:'+id;
+
+function resetRushAlerts(guardId=null) {
+  seenRush.clear();
+  alertGuard=null;
+  if(guardId===null)return;
+  try{if(localStorage.getItem(rushSoundKey(guardId))==='on')alertGuard=guardId;}catch{}
+}
+function resumeRushAudio() {
   const Audio=window.AudioContext||window.webkitAudioContext;
   if(Audio){
     try{alertAudio ||= new Audio();alertAudio.resume().catch(()=>{});}catch{}
   }
+}
+function unlockRushAudio(event) {
+  if(event.isTrusted&&account&&alertGuard===account.id&&alertAudio?.state!=='running')resumeRushAudio();
+}
+document.addEventListener('pointerdown',unlockRushAudio);
+document.addEventListener('keydown',unlockRushAudio);
+
+function toggleRushSound() {
+  alertGuard=alertGuard===account.id?null:account.id;
+  try{localStorage.setItem(rushSoundKey(account.id),alertGuard?'on':'off');}catch{}
+  if(alertGuard)resumeRushAudio();
   render();
 }
-function signalRush() {
-  if(!account||view.role!=='guard'||alertGuard!==account.id)return;
-  for(const r of rushOffers()){
-    const key=r.id+':'+r.offer.replyDeadline;
-    if(seenRush.has(key))continue;
+function signalStaffingAlerts() {
+  if(!account||view.role!=='guard')return;
+  const company=currentCompanyAnnouncements();
+  const announced=new Set(company.map(r=>r.id));
+  const keys=[...company.map(r=>r.id+':company'),...guardRushAlerts().filter(r=>!announced.has(r.id)).map(r=>r.id+':'+(r.offer?.replyDeadline||'open'))];
+  const fresh=keys.filter(key=>{
+    if(seenRush.has(key))return false;
     seenRush.add(key);
-    const banner=document.querySelector('.rush-banner');
-    if(banner && !matchMedia('(prefers-reduced-motion: reduce)').matches){
-      banner.animate([{outline:'4px solid transparent'},{outline:'4px solid #d88600'},{outline:'4px solid transparent'}],{duration:1600,iterations:2});
-    }
+    return true;
+  });
+  if(!fresh.length)return;
+  const banner=document.querySelector('#urgent-banner');
+  if(!banner.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    banner.animate([{outline:'4px solid transparent'},{outline:'4px solid #d88600'},{outline:'4px solid transparent'}],{duration:1600,iterations:2});
+  }
+  if(alertGuard===account.id){
     navigator.vibrate?.([180,80,180]);
     if(alertAudio?.state==='running'){
       const oscillator=alertAudio.createOscillator();

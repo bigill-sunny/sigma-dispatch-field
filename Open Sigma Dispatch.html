@@ -16,7 +16,7 @@
     .login-card{margin:clamp(18px,9vh,90px) auto 0;width:min(100%,460px);padding:clamp(20px,5vw,40px)}
     .login-card h1{margin-bottom:24px}.login-form{display:grid;gap:10px}.login-form .button{margin-top:8px}.login-form input,.login-form .button{min-height:46px}.login-form #login-role:empty{display:none}
     .guard-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}.guard-tabs button{min-height:48px;background:white;border:1px solid #bfd2d4;border-radius:9px;color:#25414b;font-weight:650;padding:7px}.guard-tabs button[aria-pressed=true]{background:#e0f7f0;color:#12463e;border-color:#54a894}
-    .rush-banner{position:sticky;top:0;z-index:2;background:#fff4ed;border:1px solid #df9d85;border-radius:12px;padding:12px 14px;margin-bottom:18px;color:#662c20;display:grid;gap:6px}.countdown{font-variant-numeric:tabular-nums;font-weight:750}.offer-actions .button{min-height:44px}.check-in{margin:9px 0 0}
+    .rush-banner{background:#fff4ed;border:1px solid #df9d85;border-radius:12px;padding:12px 14px;margin-bottom:18px;color:#662c20;display:grid;gap:6px}.countdown{font-variant-numeric:tabular-nums;font-weight:750}.offer-actions .button{min-height:44px}.check-in{margin:9px 0 0}
     .preference-form{display:grid;gap:12px;margin-top:12px}.preference-form fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.preference-form legend{font-weight:650}.preference-form input[type=number]{max-width:180px}.choice{min-height:42px;display:inline-flex;align-items:center;gap:6px;padding:4px;font-weight:600}
     .chat-trigger{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:5;min-height:46px;border-radius:50px;padding-inline:18px}.chat-drawer{position:fixed;z-index:4;bottom:calc(75px + env(safe-area-inset-bottom));right:16px;width:min(420px,calc(100% - 32px));max-height:min(70dvh,640px);display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 35px #11243a33}.chat-messages{overflow:auto;min-height:70px;flex:1;display:flex;flex-direction:column;gap:8px}.chat-line{background:#eff5f4;border-radius:8px;padding:9px;overflow-wrap:anywhere}.chat-line.you{background:#dff4eb;align-self:flex-end}.chat-line p+.button{margin-top:8px}.chat-suggestions{display:flex;gap:5px;overflow:auto}.chat-suggestions button{flex:none}#chat-form input{flex:1;min-width:0}#chat-form{flex-wrap:nowrap}
     @media(max-width:570px){.guard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.rush-banner .offer-actions .button{flex:1}.chat-drawer{padding:12px}.shell:has(+ #chat .chat-trigger){padding-bottom:84px}}
@@ -54,6 +54,10 @@ body:has(.guard-tabs) .chat-trigger{bottom:calc(76px + env(safe-area-inset-botto
     .calendar-scalable .days button{min-height:calc(44px * var(--calendar-scale))}
     .calendar-scalable .week-shift{min-width:calc(9.5rem * var(--calendar-scale))}
 
+    .urgent-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:#9e3029;color:white;border-bottom:2px solid #77241f}
+    .urgent-content{width:min(1320px,calc(100% - 28px));margin:auto;padding:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
+    .urgent-content p{font-weight:700}
+    .urgent-content .button{color:#77241f;border-color:transparent}
     .attendance-dialog{width:min(480px,calc(100% - 24px));max-height:90vh;border:1px solid var(--line);border-radius:12px;padding:20px}
     .attendance-dialog::backdrop{background:#11243acc}
     .attendance-dialog img,.attendance-dialog video{width:100%;max-height:55vh;object-fit:contain;margin:12px 0}
@@ -62,6 +66,9 @@ body:has(.guard-tabs) .chat-trigger{bottom:calc(76px + env(safe-area-inset-botto
 </head>
 <body>
   <header><div class="head"><div class="brand"><span class="mark" aria-hidden="true">Σ</span>Sigma Dispatch</div><div id="account"></div></div></header>
+  <aside id="urgent-banner" class="urgent-header" aria-label="Staffing alerts" hidden>
+    <div class="urgent-content"><p id="urgent-summary" role="status" aria-live="polite" aria-atomic="true"></p><button type="button" class="button" data-action="staffing-offers" data-id="open" hidden>View available shifts</button></div>
+  </aside>
   <main class="shell"><div class="command" id="command"></div><div id="notice" role="status" aria-live="polite"></div><div id="screen"></div></main>
   <div id="chat"></div>
 <script>
@@ -184,6 +191,12 @@ const formatDay=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto'
 const shiftTime=(r)=>`${formatDay(r.start)} · ${formatTime(r.start)}–${inputDate(r.start)===inputDate(r.end)?'':formatDay(r.end)+' '}${formatTime(r.end)}`;
 const open=(r)=>r.need-r.assignments.length;
 const isPast=(r)=>r.start<=data.now;
+function companyAlertUntil(r,now) {
+  if(r.start<=now||r.need<=(r.confirmed??r.assignments.length))return 0;
+  if(inputDate(r.start)===inputDate(now))return r.start;
+  const received=r.receivedAt??r.history?.find(event=>event.status==='Received')?.at;
+  return received<=now&&received+day>now?Math.min(r.start,received+day):0;
+}
 const overlaps=(a,b)=>a.start<b.end&&b.start<a.end;
 const safe=(val)=>String(val??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
@@ -636,8 +649,11 @@ const guardActions={
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
-    insist(activeOffer(offerFor(r,g)),'This offer is no longer active.');
-    offerFor(r,g).status='Declined';recordEvent(r,'Rejected offer',g.id);
+    const offer=offerFor(r,g);
+    const canDeclineAnnouncement=!offer&&companyAlertUntil(r,data.now)&&(!r.rush||preferencesFor(g.id).rush)&&!eligibility(g,r).length;
+    insist(activeOffer(offer)||canDeclineAnnouncement,'This offer is no longer active.');
+    r.offers[g.id]={...offer,status:'Declined',at:data.now};
+    recordEvent(r,'Rejected offer',g.id);
     audit(`${g.name} declined an offer.`);
     return 'Offer declined.';
   },
@@ -714,17 +730,21 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
   const g=guardBy(account.guard);
-  const requests=[];
+  const requests=[],companyAnnouncements=[];
   for(const r of data.requests){
     const mine=r.assignments.find(a=>a.guard===g.id);
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const announcementUntil=companyAlertUntil(r,data.now);
+    if(announcementUntil&&!mine&&!volunteered&&offer?.status!=='Declined'){
+      companyAnnouncements.push({id:r.id,until:announcementUntil});
+    }
     const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
     const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
@@ -739,7 +759,7 @@ function project(snapshot,account) {
     const {area,uniform,name,notes}=siteBy(r.site);
     const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,announcementUntil,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -751,14 +771,14 @@ function project(snapshot,account) {
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
   const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
-  const state={now:data.now,notices,requests,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
+  const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
 const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
-  if(command.revision===revision)return true;
+  if(command.revision===revision||command.action==='create-request')return true;
   const r=snapshot.requests.find(request=>request.id===Number(command.id));
   return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
 }
@@ -1102,6 +1122,12 @@ const formatDay=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto'
 const shiftTime=(r)=>`${formatDay(r.start)} · ${formatTime(r.start)}–${inputDate(r.start)===inputDate(r.end)?'':formatDay(r.end)+' '}${formatTime(r.end)}`;
 const open=(r)=>r.need-r.assignments.length;
 const isPast=(r)=>r.start<=data.now;
+function companyAlertUntil(r,now) {
+  if(r.start<=now||r.need<=(r.confirmed??r.assignments.length))return 0;
+  if(inputDate(r.start)===inputDate(now))return r.start;
+  const received=r.receivedAt??r.history?.find(event=>event.status==='Received')?.at;
+  return received<=now&&received+day>now?Math.min(r.start,received+day):0;
+}
 const overlaps=(a,b)=>a.start<b.end&&b.start<a.end;
 const safe=(val)=>String(val??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
@@ -1554,8 +1580,11 @@ const guardActions={
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
-    insist(activeOffer(offerFor(r,g)),'This offer is no longer active.');
-    offerFor(r,g).status='Declined';recordEvent(r,'Rejected offer',g.id);
+    const offer=offerFor(r,g);
+    const canDeclineAnnouncement=!offer&&companyAlertUntil(r,data.now)&&(!r.rush||preferencesFor(g.id).rush)&&!eligibility(g,r).length;
+    insist(activeOffer(offer)||canDeclineAnnouncement,'This offer is no longer active.');
+    r.offers[g.id]={...offer,status:'Declined',at:data.now};
+    recordEvent(r,'Rejected offer',g.id);
     audit(`${g.name} declined an offer.`);
     return 'Offer declined.';
   },
@@ -1632,17 +1661,21 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
   const g=guardBy(account.guard);
-  const requests=[];
+  const requests=[],companyAnnouncements=[];
   for(const r of data.requests){
     const mine=r.assignments.find(a=>a.guard===g.id);
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const announcementUntil=companyAlertUntil(r,data.now);
+    if(announcementUntil&&!mine&&!volunteered&&offer?.status!=='Declined'){
+      companyAnnouncements.push({id:r.id,until:announcementUntil});
+    }
     const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
     const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
@@ -1657,7 +1690,7 @@ function project(snapshot,account) {
     const {area,uniform,name,notes}=siteBy(r.site);
     const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,announcementUntil,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -1669,14 +1702,14 @@ function project(snapshot,account) {
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
   const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
-  const state={now:data.now,notices,requests,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
+  const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
 const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
-  if(command.revision===revision)return true;
+  if(command.revision===revision||command.action==='create-request')return true;
   const r=snapshot.requests.find(request=>request.id===Number(command.id));
   return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
 }
@@ -1886,7 +1919,33 @@ function render() {
   command.innerHTML='<span class="small muted">Toronto time</span><span class="clock">'+formatTime(Date.now())+'</span>';
   document.querySelector('#screen').innerHTML=({admin:adminView,guard:guardView,client:clientView})[view.role]();if(view.role==='client')priority();
   renderChat();
+  updateUrgentBanner();
   updateRushCountdown();
+}
+
+function updateUrgentBanner() {
+  const banner=document.querySelector('#urgent-banner');
+  const summary=document.querySelector('#urgent-summary');
+  const guard=account?.role==='guard';
+  const matches=guard?guardStaffingOffers():[];
+  const companyCount=guard?currentCompanyAnnouncements().length:0;
+  let message='';
+  if(guard&&(companyCount||matches.length)){
+    const companyLabel=companyCount?companyCount+' company-wide staffing '+(companyCount===1?'alert':'alerts')+' · ':'';
+    message=companyLabel+(matches.length?matches.length+' '+(matches.length===1?'shift':'shifts')+' available to you':'No matching shifts for you');
+  }
+  if(account&&!guard){
+    const requests=data.requests.filter(r=>r.start>data.now&&confirmedCount(r)<r.need&&(r.rush||companyAlertUntil(r,data.now)));
+    const urgent=requests.filter(r=>r.rush).length;
+    const other=requests.length-urgent;
+    const parts=[];
+    if(urgent)parts.push(urgent+' urgent staffing '+(urgent===1?'request':'requests')+' awaiting coverage');
+    if(other)parts.push(other+' '+(other===1?'booking':'bookings')+' open for staffing');
+    message=parts.join(' · ');
+  }
+  banner.hidden=!message;
+  banner.querySelector('button').hidden=!matches.length;
+  if(summary.textContent!==message)summary.textContent=message;
 }
 
 function priority(){const f=document.querySelector('#create-request')?.elements;if(!f)return;let note='';try{const diff=localTime(f.date.value,f.time.value)-data.now;note=diff<=0?'Choose a future start.':diff<=2*hour?'Starts within two hours. Automatically flagged as urgent.':f.rush.value==='urgent'?'Urgent dispatch requested.':'Regular dispatch.';}catch{}document.querySelector('#priority-note').textContent=note;}
@@ -2048,7 +2107,7 @@ document.addEventListener('click',event=>{
   if(action==='logout'){signOut();return;}
   if(!account)return;
   if(handleChatAction(action,id))return;
-  if(action==='guard-tab'){view.guardTab=id;render();window.scrollTo(0,0);document.querySelector(`[data-action=guard-tab][data-id="${id}"]`)?.focus();return;}
+  if(action==='guard-tab'||action==='staffing-offers'&&view.role==='guard'){view.guardTab=id;render();window.scrollTo(0,0);document.querySelector(`[data-action=guard-tab][data-id="${id}"]`)?.focus();return;}
   if(action==='alert-device'&&view.role==='guard'){toggleRushSound();return;}
   const r=byId(id);
   if(action==='extract'&&view.role==='client'){
@@ -2138,10 +2197,11 @@ document.addEventListener('submit',event=>{
 const requestApi=typeof standaloneRequest==='function'?standaloneRequest:fetch;
 const roleTitles={admin:'Dispatch Admin',client:'Client Portal',guard:'Guard Account'};
 const apiOptions=body=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-let account=null, revision=-1, busy=false, generation=0;
+let account=null, revision=-1, busy=false, generation=0, projectionDay=null;
 
 function showLogin() {
   clearTravelAlerts();
+  resetRushAlerts();
   account=null;
   revision=-1;
   generation++;
@@ -2149,6 +2209,7 @@ function showLogin() {
   sites=[]; clients={}; guards=[];
   view.checked.clear();
   resetChat();
+  updateUrgentBanner();
   document.querySelector('#command').innerHTML='';
   document.querySelector('#account').innerHTML='';
   document.querySelector('#screen').innerHTML=`
@@ -2203,6 +2264,7 @@ async function signOut() {
 
 function install(record) {
   if(account?.id!==record.account.id){
+    resetRushAlerts(record.account.role==='guard'?record.account.id:null);
     view.checked.clear();
     resetChat();
     Object.assign(view,{mobileDetail:false,selected:1,search:'',status:'all',page:0,template:null,prefill:{},guardTab:'shifts',scheduleMode:'Agenda',calendarDate:null});
@@ -2212,6 +2274,7 @@ function install(record) {
   ({sites,clients,guards}=record.catalog);
   data=record.state;
   revision=record.revision;
+  projectionDay=inputDate(data.now);
   if(!byId(view.selected))view.selected=data.requests[0]?.id;
 }
 
@@ -2239,13 +2302,14 @@ async function submitAction(action,id='',extra='',fields={}) {
 async function refresh() {
   if(busy)return;
   const before=generation;
+  const dateChanged=account&&projectionDay!==inputDate(Date.now());
   try{
-    const reply=await requestApi('/api/state?since='+revision+'&account='+(account?.id||''),{cache:'no-store'});
+    const reply=await requestApi('/api/state?since='+(dateChanged?-1:revision)+'&account='+(account?.id||''),{cache:'no-store'});
     if(busy||generation!==before||reply.status===204)return;
     if(reply.status===401){if(account||!document.querySelector('#login'))showLogin();return;}
     if(!reply.ok)throw Error('Schedule unavailable.');
     const record=await reply.json();
-    if(busy||generation!==before||record.account.id===account?.id&&record.revision<=revision)return;
+    if(busy||generation!==before||record.account.id===account?.id&&(record.revision<revision||(!dateChanged&&record.revision===revision)))return;
     const selector='#screen form input,#screen form textarea,#screen form select,#email';
     const drafts=record.account.id===account?.id?[...document.querySelectorAll(selector)].map(el=>({
       id:el.id,name:el.name,form:el.form?.id||el.form?.dataset.swap,kind:el.type,value:el.value,checked:el.checked,
@@ -2310,6 +2374,7 @@ function startApp() {
     }
     const clock=document.querySelector('.clock');
     if(clock)clock.textContent=formatTime(data.now);
+    updateUrgentBanner();
     updateRushCountdown();
     updateShiftAlerts();
   },1000);
@@ -2432,10 +2497,13 @@ const guardTabs=[
 const guardAssignments=()=>data.requests.filter(r=>r.mine).sort((a,b)=>a.start-b.start);
 const guardOpenShifts=()=>data.requests.filter(r=>r.canVolunteer&&(!r.rush||!activeOffer(r.offer))).sort((a,b)=>a.start-b.start);
 const rushOffers=()=>data.requests.filter(r=>r.rush&&activeOffer(r.offer)).sort((a,b)=>a.offer.expires-b.offer.expires);
+const guardRushAlerts=()=>[...rushOffers(),...guardOpenShifts().filter(r=>r.rush&&!r.offer&&!isPast(r))];
+const currentCompanyAnnouncements=()=>(data.companyAnnouncements||[]).filter(a=>a.until>data.now);
+const guardStaffingOffers=()=>[...guardRushAlerts(),...guardOpenShifts().filter(r=>!r.rush&&r.announcementUntil>data.now)];
 const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
-  const rush=rushOffers();
+  const rush=guardRushAlerts();
   return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
@@ -2444,14 +2512,19 @@ function guardView() {
 
 function offerActions(r) {
   return `<div class="actions offer-actions">
-    ${r.canVolunteer?button(r.rush?'I can cover this':'Request shift','volunteer',r.id,'','primary'):tag('Eligibility changed','warn')}
-    ${r.rush&&activeOffer(r.offer)?button('Decline','decline',r.id):''}
+    ${r.canVolunteer?button(r.rush||r.announcementUntil>data.now?'I can cover this':'Request shift','volunteer',r.id,'','primary'):tag('Eligibility changed','warn')}
+    ${(activeOffer(r.offer)||(!r.offer&&r.canVolunteer&&r.announcementUntil>data.now))?button('Decline','decline',r.id):''}
   </div>`;
+}
+function rushDeadline(r) {
+  return activeOffer(r.offer)
+    ? `<span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span>`
+    : tag('Open rush shift','rush');
 }
 function rushBanner(r,count) {
   const {area,uniform}=r.location;
   return `<aside class="rush-banner" aria-label="Rush shift offer">
-    <div class="row"><strong>Rush shift · ${safe(area)}</strong><span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div>
+    <div class="row"><strong>Rush shift · ${safe(area)}</strong>${rushDeadline(r)}</div>
     <p>${shiftTime(r)} · ${safe(uniform)} · ${r.eta} min ETA</p>
     <p class="small">Site name and instructions appear after approval.${count>1?' More offers in Offers &amp; swaps.':''}</p>
     ${offerActions(r)}
@@ -2465,7 +2538,7 @@ function updateRushCountdown() {
     el.textContent=seconds?'Reply in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'Reply window closed';
     if(!seconds)for(const btn of el.closest('.rush-banner, .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
   }
-  signalRush();
+  signalStaffingAlerts();
 }
 function guardCalendarStatus(r){
   if(r.mine)return 'booked';
@@ -2547,19 +2620,19 @@ function guardSchedule() {
       return `<div class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${calendarMarker(status,label)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${status==='available'?offerActions(r):''}</div>`;
     }).join('')}</section><section class="card"><h2>Shift notifications on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
     ${phoneSupported?button(phoneOn?'Turn phone alerts off':'Turn phone alerts on','phone-alert'):''}
-    ${button(alertGuard===account.id?'Mute in-app alerts':'Enable in-app alerts','alert-device')}</div></section>`;
+    ${button(alertGuard===account.id?'Mute alert sound and vibration':'Enable alert sound and vibration','alert-device')}</div></section>`;
 }
 function regularOfferCard(r) {
   const {area,uniform}=r.location;
   return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
-  const regular=guardOpenShifts();
-  const otherRush=rushOffers().slice(1);
+  const regular=guardOpenShifts().filter(r=>!r.rush);
+  const otherRush=guardRushAlerts().slice(1);
   const waiting=data.requests.filter(r=>r.offer?.status==='Volunteered');
   return `<section class="card"><h2>Open shifts and swap pool</h2>
     <p class="sub">Site name and instructions appear after approval.</p>
-    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong><span data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
+    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong>${rushDeadline(r)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
     ${regular.map(regularOfferCard).join('')}
     ${data.poolSwaps.map(s=>`<article class="entry"><strong>${safe(s.location.area)} · Swap pool</strong><p class="sub">${shiftTime(s)} · ${safe(s.location.uniform)}</p>${button('Claim pool swap','claim',s.id,'','primary')}</article>`).join('')}
     ${waiting.map(r=>`<article class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${tag('Awaiting admin approval','warn')}</div><p class="sub">${shiftTime(r)}</p></article>`).join('')}
@@ -2602,27 +2675,50 @@ function guardLeave() {
   </section>`;
 }
 
-let alertGuard=null, alertAudio=null, seenRush=new Set();
-function toggleRushSound() {
-  if(alertGuard===account.id){alertGuard=null;render();return;}
-  alertGuard=account.id;
-  seenRush=new Set(rushOffers().map(r=>r.id+':'+r.offer.replyDeadline));
+let alertGuard=null, alertAudio=null;
+const seenRush=new Set();
+const rushSoundKey=id=>'sigma-rush-sound:'+id;
+
+function resetRushAlerts(guardId=null) {
+  seenRush.clear();
+  alertGuard=null;
+  if(guardId===null)return;
+  try{if(localStorage.getItem(rushSoundKey(guardId))==='on')alertGuard=guardId;}catch{}
+}
+function resumeRushAudio() {
   const Audio=window.AudioContext||window.webkitAudioContext;
   if(Audio){
     try{alertAudio ||= new Audio();alertAudio.resume().catch(()=>{});}catch{}
   }
+}
+function unlockRushAudio(event) {
+  if(event.isTrusted&&account&&alertGuard===account.id&&alertAudio?.state!=='running')resumeRushAudio();
+}
+document.addEventListener('pointerdown',unlockRushAudio);
+document.addEventListener('keydown',unlockRushAudio);
+
+function toggleRushSound() {
+  alertGuard=alertGuard===account.id?null:account.id;
+  try{localStorage.setItem(rushSoundKey(account.id),alertGuard?'on':'off');}catch{}
+  if(alertGuard)resumeRushAudio();
   render();
 }
-function signalRush() {
-  if(!account||view.role!=='guard'||alertGuard!==account.id)return;
-  for(const r of rushOffers()){
-    const key=r.id+':'+r.offer.replyDeadline;
-    if(seenRush.has(key))continue;
+function signalStaffingAlerts() {
+  if(!account||view.role!=='guard')return;
+  const company=currentCompanyAnnouncements();
+  const announced=new Set(company.map(r=>r.id));
+  const keys=[...company.map(r=>r.id+':company'),...guardRushAlerts().filter(r=>!announced.has(r.id)).map(r=>r.id+':'+(r.offer?.replyDeadline||'open'))];
+  const fresh=keys.filter(key=>{
+    if(seenRush.has(key))return false;
     seenRush.add(key);
-    const banner=document.querySelector('.rush-banner');
-    if(banner && !matchMedia('(prefers-reduced-motion: reduce)').matches){
-      banner.animate([{outline:'4px solid transparent'},{outline:'4px solid #d88600'},{outline:'4px solid transparent'}],{duration:1600,iterations:2});
-    }
+    return true;
+  });
+  if(!fresh.length)return;
+  const banner=document.querySelector('#urgent-banner');
+  if(!banner.hidden && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    banner.animate([{outline:'4px solid transparent'},{outline:'4px solid #d88600'},{outline:'4px solid transparent'}],{duration:1600,iterations:2});
+  }
+  if(alertGuard===account.id){
     navigator.vibrate?.([180,80,180]);
     if(alertAudio?.state==='running'){
       const oscillator=alertAudio.createOscillator();
