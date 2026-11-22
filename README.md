@@ -67,7 +67,7 @@ The assigned supervisor can review volunteers and the assigned crew using five j
 
 ## Deploy the pilot on Render
 
-Connect the private repository to Render and create a Blueprint using render.yaml. Render generates a private SIGMA_PILOT_KEY. Reveal it in the service's Environment settings when signing in on your test devices. It is required alongside each fictional account's password. The service uses the Render HTTPS URL and responds at /health once initialized. Allow time for the first boot to hash the demo passwords.
+Connect the private repository to Render and create a Blueprint using render.yaml. Render generates a private SIGMA_PILOT_KEY. Reveal it in the service's Environment settings when signing in on your test devices. It is required alongside each fictional account's password. The service uses the Render HTTPS URL and responds at /health once initialized. The build precomputes the fictional account password hashes so the service can start quickly.
 
 The Blueprint uses a free web service for the supervised phone pilot. SQLite data and alert registrations are temporary on that plan. Scheduled work pauses when the service sleeps. For an always-on pilot with persistent history, use an authorized paid instance with a disk mounted at /var/data and set SIGMA_DB=/var/data/dispatch.sqlite.
 

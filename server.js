@@ -25,9 +25,10 @@ const {sites}=require('./catalog.js');
   }
 })();
 
+const prepareDemoUsers=process.argv.includes('--prepare-demo-users');
 const onRender=Boolean(process.env.RENDER_EXTERNAL_URL);
 const pilotKey=process.env.SIGMA_PILOT_KEY||'';
-if(onRender&&pilotKey.length<20)throw Error('Set SIGMA_PILOT_KEY to a private access key at least 20 characters long.');
+if(onRender&&!prepareDemoUsers&&pilotKey.length<20)throw Error('Set SIGMA_PILOT_KEY to a private access key at least 20 characters long.');
 const port=Number(process.env.SIGMA_PORT||process.env.PORT||4173);
 const publicOrigin=process.env.SIGMA_ORIGIN||process.env.RENDER_EXTERNAL_URL;
 const host=process.env.SIGMA_HOST||(onRender?'0.0.0.0':'127.0.0.1');
@@ -46,7 +47,6 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS login_aliases(alias TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id));
   CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), expires INTEGER NOT NULL);
 `);
-db.prepare('INSERT OR IGNORE INTO board VALUES(1,0,?)').run(JSON.stringify(seed('rush')));
 {
   const insert=db.prepare('INSERT INTO users VALUES(?,?,?,?,?,?)');
   const alias=db.prepare('INSERT INTO login_aliases VALUES(?,?)');
@@ -62,6 +62,9 @@ db.prepare('INSERT OR IGNORE INTO board VALUES(1,0,?)').run(JSON.stringify(seed(
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');throw error;}
 }
+
+if(prepareDemoUsers){db.close();process.exit(0);}
+db.prepare('INSERT OR IGNORE INTO board VALUES(1,0,?)').run(JSON.stringify(seed('rush')));
 
 const push=require("./push.js")(db);
 const attendance=attendanceService(db);
