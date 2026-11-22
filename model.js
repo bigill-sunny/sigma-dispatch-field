@@ -7,7 +7,7 @@ let {sites,clients,guards}=typeof module!=='undefined'?require('./catalog.js'):{
 const guardId=id=>Number(id)>0&&Number(id)<=120?3000+Number(id):Number(id);
 const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const blocks=['Morning','Afternoon','Overnight'];
-const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true};
+const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true,standby:false};
 
 function migrate(snapshot) {
   if(snapshot.version===2)return snapshot;
@@ -75,13 +75,12 @@ function requestCalendar(r){
   const dow=(new Date(inputDate(midnight)+'T12:00Z').getUTCDay()+6)%7;
   const dateAt=i=>new Date(Date.parse(inputDate(midnight)+'T12:00Z')+i*day).toISOString().slice(0,10);
   const monday=localTime(dateAt(-dow),'00:00'),weekEnd=localTime(dateAt(7-dow),'00:00');
-  const bounds=Array.from({length:3},(_,i)=>localTime(dateAt(i),'00:00'));
-  const calendar={monday,weekEnd,bounds};
+  const calendar={monday,weekEnd};
   calendarCache.set(r,calendar);
   return calendar;
 }
 function scheduleCheck(g,r){
-  const {monday,weekEnd,bounds}=requestCalendar(r);
+  const {monday,weekEnd}=requestCalendar(r);
   const duties=data.requests.filter(x=>r.id!==x.id&&x.assignments.some(a=>a.guard===g.id));
   const hours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd)-Math.max(x.start,monday))/hour,0);
   const nextHours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd+7*day)-Math.max(x.start,weekEnd))/hour,0);
@@ -90,14 +89,41 @@ function scheduleCheck(g,r){
   const crossesWeek=r.end>weekEnd;
   const projected=crossesWeek?Math.max(firstWeek,secondWeek):firstWeek;
   const overtime=Math.max(0,firstWeek-44)-Math.max(0,hours-44)+(crossesWeek?Math.max(0,secondWeek-44)-Math.max(0,nextHours-44):0);
-  let rest=duties.some(x=>{const spacing=Math.max(x.start-r.end,r.start-x.end);return spacing>=0&&spacing<8*hour&&x.end-x.start+r.end-r.start>13*hour;});
-  for(let d=0;d<2;d++){const start=bounds[d],end=bounds[d+1];if(r.end<=start)break;
-    let cursor=start,longest=0;
-    for(const x of [...duties,r].filter(x=>x.start<end&&x.end>start).sort((a,b)=>a.start-b.start)){longest=Math.max(longest,x.start-cursor);cursor=Math.max(cursor,Math.min(end,x.end));}
-    rest ||= Math.max(longest,end-cursor)<11*hour;
-  }
+  const shifts=[...duties,r].sort((a,b)=>a.start-b.start);
+  const rest=insufficientRest(shifts,r);
   return {rest,projected,ot:overtime,review:(g.id-3000)%23===0};
 }
+function insufficientRest(shifts,proposed){
+  let cycleStart=shifts[0].start;
+  let cycle=[];
+  const dailyRestFailed=()=>{
+    if(!cycle.includes(proposed))return false;
+    for(let start=cycleStart;start<cycle.at(-1).end;start+=day){
+      const end=start+day;
+      let cursor=start,longest=0;
+      for(const shift of cycle){
+        if(shift.end<=start||shift.start>=end)continue;
+        longest=Math.max(longest,shift.start-cursor);
+        cursor=Math.max(cursor,Math.min(end,shift.end));
+      }
+      if(Math.max(longest,end-cursor)<11*hour)return true;
+    }
+    return false;
+  };
+  for(const shift of shifts){
+    const previous=cycle.at(-1);
+    if(previous){
+      const gap=shift.start-previous.end;
+      if(gap>=day){
+        if(dailyRestFailed())return true;
+        cycleStart=shift.start;cycle=[];
+      }else if((previous===proposed||shift===proposed)&&gap>=0&&gap<8*hour&&previous.end-previous.start+shift.end-shift.start>13*hour)return true;
+    }
+    cycle.push(shift);
+  }
+  return dailyRestFailed();
+}
+
 function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
@@ -116,10 +142,17 @@ function eligibility(g,r,{forSwap=false}={}) {
   if(!g.available) reasons.push('Marked unavailable');
   if(data.leaves.some(l=>l.guard===g.id&&l.status==='Approved'&&overlaps(l,r))) reasons.push('Approved leave');
   if(r.cancelledGuard===g.id||r.cancelledGuards?.includes(g.id)) reasons.push('Cancelled this shift');
+  if(!forSwap&&r.backup?.guard===g.id&&r.backup.status==='Ready')reasons.push('Reserved as standby');
   if(r.assignments.some(a=>a.guard===g.id)) reasons.push('Already assigned here');
-  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&other.assignments.some(a=>a.guard===g.id))) reasons.push('Overlapping assignment');
+  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&(other.assignments.some(a=>a.guard===g.id)||other.backup?.guard===g.id&&other.backup.status==='Ready'))) reasons.push('Overlapping assignment');
   if(remaining<=0) reasons.push('Shift already started');
-  else if(travelMinutes(g,r)>remaining) reasons.push('Estimated arrival is too late');
+  else {
+    const response=r.offers[g.id];
+    if(r.rush&&response?.status==='Volunteered'){
+      const travel=Number.isFinite(response.arrivalAt)?response.arrivalAt-response.at:travelMinutes(g,r)*minute;
+      if(data.now+travel>r.start)reasons.push('Departure window passed. Ask the guard for a current ETA.');
+    }
+  }
   if(open(r)<=0&&!forSwap) reasons.push('All positions filled');
   return reasons;
 }
@@ -130,24 +163,62 @@ function travelMinutes(g,r){
   return Math.max(5,g.eta+areaIndex*(3+(g.id%8)));
 }
 const attendanceCache=new WeakMap();
-function attendance(g){
+function attendance(g,siteId){
   let index=attendanceCache.get(data);
   if(!index){
     index=new Map();
-    for(const r of data.requests)for(const a of r.assignments||[]){
-      if(!a.review)continue;
-      const record=index.get(a.guard)||{onTime:0,completed:0};
-      record.completed++;
-      if(a.review.arrival==='On time')record.onTime++;
-      index.set(a.guard,record);
+    const stats=id=>{
+      if(!index.has(id))index.set(id,{onTime:0,completed:0,accepted:0,cancelled:0,ratings:new Map(),fit:new Map()});
+      return index.get(id);
+    };
+    for(const r of data.requests){
+      for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
+      if(r.end<=data.now){
+        for(const review of r.fitReviews||[]){
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          const fit=stats(review.guard).fit;
+          const previous=fit.get(r.site)||new Map();
+          const scores=previous.get(r.id)||[];
+          scores.push(review.verdict==='Good fit'?1:review.verdict==='Needs coaching'?0.5:0);
+          previous.set(r.id,scores);
+          fit.set(r.site,previous);
+        }
+      }
+      for(const assignment of r.assignments){
+        const record=stats(assignment.guard);
+        if(assignment.review){
+          record.completed++;
+          if(assignment.review.arrival==='On time')record.onTime++;
+          if(assignment.review.report==='Accepted')record.accepted++;
+        }
+        if(r.clientFeedback){
+          const scores=record.ratings.get(r.site)||[];
+          scores.push(r.clientFeedback.rating);
+          record.ratings.set(r.site,scores);
+        }
+      }
     }
     attendanceCache.set(data,index);
   }
   const recorded=index.get(g.id);
   const onTime=g.onTime+(recorded?.onTime||0),completed=g.completed+(recorded?.completed||0);
-  return {onTime,completed,rate:onTime/completed};
+  const rate=onTime/completed;
+  const reports=(g.reportRecord.accepted+(recorded?.accepted||0))/(g.reportRecord.reviewed+(recorded?.completed||0));
+  const cancellations=g.priorCancellations+(recorded?.cancelled||0);
+  const showUp=completed/(completed+cancellations);
+  const scores=recorded?.ratings.get(siteId)||[];
+  const feedback=scores.length?scores.reduce((sum,rating)=>sum+rating,0)/scores.length:null;
+  const base=(rate*.4+reports*.25+showUp*.2)/.85;
+  const feedbackWeight=.15*Math.min(scores.length/3,1);
+  const fitShifts=[...(recorded?.fit.get(siteId)?.values()||[])];
+  const fitScores=fitShifts.map(items=>items.reduce((total,value)=>total+value,0)/items.length);
+  const fitAverage=fitScores.length?fitScores.reduce((total,value)=>total+value,0)/fitScores.length:null;
+  const fitAdjustment=fitAverage===null?0:(fitAverage-.5)*16*Math.min(fitScores.length/3,1);
+  const score=Math.min(100,Math.max(0,(base*(1-feedbackWeight)+(feedback===null?0:(feedback-1)/4)*feedbackWeight)*100+fitAdjustment));
+  return {onTime,completed,rate,reports,cancellations,feedback,feedbackCount:scores.length,fitCount:fitScores.length,fitAdjustment,score};
+
 }
-const sortedGuards=(r)=>[...guards].sort((a,b)=>r.rush?travelMinutes(a,r)-travelMinutes(b,r)||attendance(b).rate-attendance(a).rate:attendance(b).rate-attendance(a).rate||travelMinutes(a,r)-travelMinutes(b,r));
+const sortedGuards=r=>[...guards].sort((a,b)=>attendance(b,r.site).score-attendance(a,r.site).score||travelMinutes(a,r)-travelMinutes(b,r)||a.id-b.id);
 const audit=(message)=>data.log.unshift({at:data.now,message});
 const offerFor=(r,g)=>r.offers[g.id];
 const waiting=(r)=>Object.values(r.offers).filter(o=>o.status==='Volunteered').length;
@@ -165,13 +236,19 @@ function preferenceMatches(g,r,projected) {
 
 function insist(condition,message) {if(!condition) throw new Error(message);}
 
-function volunteer(r,g) {
+function volunteer(r,g,arrivalMinutes) {
   const existing=offerFor(r,g);
-  if(existing?.status==='Volunteered') return 'Your response is already awaiting approval.';
-  insist(!existing||activeOffer(existing),'The offer expired. Check the open shift list.');
+  const updating=existing?.status==='Volunteered';
+  if(updating&&!Number.isFinite(arrivalMinutes))return 'Your response is already awaiting approval.';
+  insist(!existing||updating||activeOffer(existing),'The offer expired. Check the open shift list.');
+  if(updating)r.offers[g.id]={...existing,at:data.now,arrivalAt:data.now+arrivalMinutes*minute};
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
-  r.offers[g.id]={...existing,status:'Volunteered',at:data.now};
+  const arrivalAt=Number.isFinite(arrivalMinutes)?data.now+arrivalMinutes*minute:null;
+  const needsEta=r.offers[g.id]?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute;
+  insist(!r.rush||!needsEta||arrivalAt!==null,'Confirm your travel time before volunteering.');
+  insist(arrivalAt===null||arrivalAt<=r.start,'This arrival time misses the shift start.');
+  r.offers[g.id]={...existing,status:'Volunteered',at:data.now,arrivalAt};
   audit(`${g.name} volunteered for ${siteBy(r.site).name}.`);
   return 'Response sent. The shift appears on your schedule after administrator approval.';
 }
@@ -186,11 +263,41 @@ function recordEvent(r,status,guard){
 function autoWave(r){
   if(r.rush&&open(r)>0&&!isPast(r)&&availableForWave(r).length)sendWave(r);
 }
-function assign(r,g) {
+function chooseBackup(r,guardId,post){
+  const g=guardBy(guardId);
+  insist(g&&!isPast(r)&&r.need>0,'Choose a guard for an upcoming shift.');
+  insist(!r.backup||!['Invited','Ready'].includes(r.backup.status),'Release the existing standby first.');
+  insist(['General','Supervisor'].includes(post),'Choose a standby post.');
+  insist(post==='General'||r.supervisors&&g.tier===2,'A qualified supervisor and supervisor post are required.');
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  r.backup={guard:g.id,post,status:'Invited',at:data.now};
+  recordEvent(r,'Standby invited',g.id);
+  return 'Standby invitation listed for the guard.';
+}
+
+function activateBackup(r){
+  const backup=r.backup;
+  insist(backup?.status==='Ready'&&open(r)>0,'An accepted standby and an open post are required.');
+  insist(backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r),'The open post does not match the standby role.');
+  const g=guardBy(backup.guard);
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  insist(travelMinutes(g,r)*minute<=r.start-data.now,'Standby travel estimate misses this start. Contact the guard or move the recovery start.');
+  r.assignments.push({guard:g.id,post:backup.post,at:data.now});
+  backup.status='Activated';
+  if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
+  recordEvent(r,'Standby approved',g.id);
+  audit(g.name+' activated from standby at '+siteBy(r.site).name+'.');
+  return 'Standby guard approved for the shift.';
+}
+
+function assign(r,g,post=g.tier===2&&gap(r)?'Supervisor':'General') {
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
   insist(offerFor(r,g)?.status==='Volunteered','This guard has not volunteered.');
-  r.assignments.push({guard:g.id,post:g.tier===2&&gap(r)?'Supervisor':'General',at:data.now});
+  insist(post==='Supervisor'?g.tier===2&&gap(r)>0:open(r)>gap(r),'This guard cannot fill the proposed post.');
+  r.assignments.push({guard:g.id,post,at:data.now});
   offerFor(r,g).status='Approved';recordEvent(r,'Approved',g.id);
   if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
   audit(`${g.name} approved and notified for ${siteBy(r.site).name}.`);
@@ -213,15 +320,91 @@ function cancelAssignment(r,g,reason='Guard cancelled') {
   audit(`${g.name} ${reason.toLowerCase()}. A position reopened at ${siteBy(r.site).name}.`);
 }
 
-function sendWave(r) {
+function assignedSupervisor(r,id){
+  return Boolean(r?.assignments.some(a=>a.guard===id&&a.post==='Supervisor')&&guardBy(id)?.tier===2);
+}
+
+function attendanceWindow(r,now){
+  return r&&now>=r.start-15*minute&&now<r.end;
+}
+
+function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}){
+  const next=structuredClone(snapshot);
+  const r=next.requests.find(request=>request.id===requestId);
+  insist(attendanceWindow(r,now),'Check-in is closed for this shift.');
+  insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
+  const assignment=r.assignments.find(a=>a.guard===guard);
+  insist(assignment,'You are not assigned to this shift.');
+  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
+  (r.history ||= []).push({at:now,status:'QR and location checked',guard});
+  versionRequests(snapshot,next);
+  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+}
+
+const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];
+
+function supervisorReview(r,reviewer,fields){
+  insist(assignedSupervisor(r,reviewer)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day,'Only the assigned supervisor can review this crew.');
+  const guard=Number(fields.guard);
+  insist(guard!==reviewer&&guardBy(guard)&&(r.assignments.some(a=>a.guard===guard)||r.offers[guard]?.status==='Volunteered'),'Select an assigned or volunteered guard from this shift.');
+  const verdict=fields.verdict;
+  insist(['Good fit','Needs coaching','Needs review'].includes(verdict)&&fitSignals.includes(fields.signal),'Choose a fit assessment and observed skill.');
+  const note=String(fields.note||'').trim().slice(0,300);
+  insist(note,'Describe what you observed.');
+  const reviews=(r.fitReviews||[]).filter(entry=>entry.guard!==guard||entry.reviewer!==reviewer);
+  r.fitReviews=[...reviews,{guard,reviewer,verdict,signal:fields.signal,note,at:data.now}];
+  attendanceCache.delete(data);
+  recordEvent(r,'Supervisor fit review saved',guard);
+  return 'Supervisor feedback saved for dispatch.';
+}
+function checkIn(r,id,source){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&data.now>=r.start-15*minute&&data.now<r.end,'Check-in opens 15 minutes before the shift and closes at shift end.');
+  if(assignment.checkIn)return 'Arrival already recorded.';
+  assignment.checkIn={at:data.now,source,method:source==='Guard'?'self-reported':'dispatcher'};
+  recordEvent(r,'Checked in',id);
+  return 'Arrival recorded.';
+}
+
+function recoverNoShow(r,id){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&!assignment.checkIn&&data.now>=r.start&&r.end>data.now,'Choose an unarrived guard on a shift in progress.');
+  r.assignments=r.assignments.filter(a=>a!==assignment);
+  (r.noShows ||= []).push({...assignment,reportedAt:data.now,reportedBy:view.contact});
+  recordEvent(r,'No-show reported',id);
+  if(r.end-data.now<=5*minute)return 'No-show recorded. Less than five minutes remain.';
+  const lead=Math.min(30*minute,Math.floor((r.end-data.now)/2));
+  const recovery=newRequest(data.next++,r.site,data.now+lead,r.end-data.now-lead,1,r.tier,true,r.notes);
+  Object.assign(recovery,{recoveryOf:r.id,supervisors:Number(assignment.post==='Supervisor'),dress:r.dress,force:r.force,vehicle:r.vehicle,cancelledGuards:[id]});
+  if(r.backup?.status==='Ready'&&r.backup.post===assignment.post){
+    recovery.backup={...r.backup};
+    r.backup.status='Released';
+    const eta=travelMinutes(guardBy(recovery.backup.guard),recovery);
+    if(eta*minute>lead)recovery.backup.status='Invited';
+  }
+  data.requests.push(recovery);
+  recordEvent(recovery,'Recovery opened',id);
+  autoWave(recovery);
+  openRequest(recovery);
+  return 'No-show recorded. A replacement request is open for the remaining shift.';
+}
+
+function sendWave(r,broadcast=false) {
   const pool=availableForWave(r);
-  const specialists=pool.filter(g=>g.tier===2).slice(0,gap(r)*2);
-  const ranked=[...specialists,...pool.filter(g=>!specialists.includes(g))];
+  const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-data.now)/minute);
+  const general=r.rush&&viable.length?[...viable,...pool.filter(g=>!viable.includes(g))]:pool;
+  const specialists=general.filter(g=>g.tier===2).slice(0,gap(r)*2);
+  const ranked=[...specialists,...general.filter(g=>!specialists.includes(g))];
   insist(pool.length,'No new eligible guards. Review the exclusions and escalate if needed.');
-  const expires=Math.min(r.start,data.now+(r.rush?5:60)*minute);
-  const invited=ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
-  const replyDeadline=r.rush?Date.now()+expires-data.now:null;
-  for(const g of invited) r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline};
+  const invited=broadcast===true?ranked:ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
+  for(const g of invited){
+    const departure=r.start-(travelMinutes(g,r)+10)*minute;
+    const verifyArrival=r.rush&&departure<=data.now;
+    const expires=Math.min(r.start,r.rush&&!verifyArrival?departure:Infinity,data.now+(r.rush?5:60)*minute);
+    r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline:r.rush?expires:null,verifyArrival};
+  }
   r.alertCount+=1;recordEvent(r,'Seeking cover');
   audit(`Offer wave ${r.alertCount} sent to ${invited.length} eligible guards.`);
   return `${invited.length} offers sent. Responses will appear in this request.`;
@@ -277,7 +460,12 @@ function openRequest(r) {
 }
 
 const adminActions={
-  wave:sendWave,
+  wave:r=>sendWave(r),
+  broadcast:r=>sendWave(r,true),
+  'activate-backup':activateBackup,
+  'no-show':(r,_,id)=>recoverNoShow(r,Number(id)),
+  'verify-arrival':(r,_,id)=>checkIn(r,Number(id),view.contact),
+  'release-backup':r=>{insist(r.backup?.status==='Ready'||r.backup?.status==='Invited','No active standby.');if(r.offers[r.backup.guard]?.status==='Standby')delete r.offers[r.backup.guard];r.backup.status='Released';recordEvent(r,'Standby released',r.backup.guard);return 'Standby released.';},
   escalate:r=>{
     insist(open(r)>0,'This request is already staffed.');
     r.escalated=true;
@@ -293,6 +481,21 @@ const adminActions={
 };
 
 const guardActions={
+  'standby-accept':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&b.status==='Invited','Standby invitation unavailable.');
+    const failures=eligibility(guardBy(view.guard),r,{forSwap:true});
+    insist(!failures.length,failures.join(' · '));
+    if(offerFor(r,guardBy(view.guard)))r.offers[view.guard].status='Standby';
+    b.status='Ready';recordEvent(r,'Standby accepted',view.guard);return 'You are on standby. Wait for dispatch before travelling.';
+  },
+  'standby-decline':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&['Invited','Ready'].includes(b.status)&&!isPast(r),'Standby invitation unavailable.');
+    if(r.offers[view.guard]?.status==='Standby')delete r.offers[view.guard];
+    b.status='Declined';recordEvent(r,'Standby declined',view.guard);return 'Standby declined.';
+  },
+  'check-in':r=>checkIn(r,view.guard,'Guard'),
   ack:r=>{const a=r.assignments.find(a=>a.guard===view.guard);insist(a&&r.end>data.now,'Current assignment required.');a.ack=data.now;audit(guardBy(view.guard).name+' acknowledged the site brief.');return 'Acknowledgment recorded.';},
   pool:r=>{insist(!isPast(r)&&r.assignments.some(a=>a.guard===view.guard),'Upcoming assignment required.');insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target:null,status:'Pending',accepted:false});recordEvent(r,'Swap requested',view.guard);audit('Swap opened to eligible peers.');return 'Pool open. Your assignment stays active until approval.';},
   claim:(_,id)=>{
@@ -304,10 +507,12 @@ const guardActions={
     return 'Claim sent for approval.';
   },
 
-  volunteer:(r)=>{
+  volunteer:(r,_,extra)=>{
     const g=guardBy(view.guard);
-    insist(!r.rush||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
-    return volunteer(r,g);
+    insist(!r.rush||offerFor(r,g)?.status==='Volunteered'||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
+    const estimate=extra===''||extra===undefined?null:Number(extra);
+    insist(estimate===null||Number.isFinite(estimate)&&estimate>=0&&estimate<=180,'Enter travel time between 0 and 180 minutes.');
+    return volunteer(r,g,estimate);
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
@@ -378,7 +583,7 @@ function savePreferences(fields) {
   const {days,blocks:preferred,maxHours,rush}=fields;
   insist(Array.isArray(days)&&days.every(day=>weekdays.includes(day))&&Array.isArray(preferred)&&preferred.every(block=>blocks.includes(block)),'Choose valid working days and shift blocks.');
   insist(Number.isFinite(maxHours)&&maxHours>=1&&maxHours<=168&&typeof rush==='boolean','Choose a weekly hours target from 1 to 168.');
-  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush};
+  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush,standby:fields.standby??preferencesFor(view.guard).standby??false};
   return 'Working preferences saved.';
 }
 
@@ -389,7 +594,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -400,13 +605,21 @@ function project(snapshot,account) {
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
+    const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
+    const crew=supervisory?[...new Set([...r.assignments.map(a=>a.guard),...Object.keys(r.offers).filter(id=>r.offers[id].status==='Volunteered').map(Number)])].filter(id=>id!==g.id).map(id=>{
+      const person=guardBy(id);
+      const assigned=r.assignments.find(a=>a.guard===id);
+      return {id,name:person.name,tier:person.tier,post:assigned?.post,checkedIn:assigned?.checkIn?.method||null,review:r.fitReviews?.find(item=>item.guard===id&&item.reviewer===g.id)||null};
+    }):null;
     const pendingSwap=data.swaps.some(s=>s.shift===r.id&&s.guard===g.id&&s.status==='Pending');
-    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer)continue;
+    const backup=r.backup?.guard===g.id&&!isPast(r)&&['Invited','Ready'].includes(r.backup.status)?{status:r.backup.status,post:r.backup.post}:null;
+    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer&&!backup&&!supervisory)continue;
     const {area,uniform,name,notes}=siteBy(r.site);
-    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress}:{area,uniform,dress:r.dress};
+    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -422,8 +635,113 @@ function project(snapshot,account) {
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
+const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+
+function canApplyCommand(snapshot,command,revision){
+  if(command.revision===revision)return true;
+  const r=snapshot.requests.find(request=>request.id===Number(command.id));
+  return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
+}
+
+function versionRequests(previous,next){
+  const prior=new Map(previous.requests.map(r=>[r.id,r]));
+  for(const r of next.requests){
+    const old=prior.get(r.id);
+    if(old&&JSON.stringify(old)!==JSON.stringify(r))r.version=(old.version||0)+1;
+    else if(!old)r.version=0;
+  }
+}
+
+function tickDispatch(snapshot,now=Date.now(),owner='Duty dispatcher'){
+  data=migrate(structuredClone(snapshot));
+  data.now=now;
+  let changed=false;
+  for(const r of data.requests){
+    if(r.end<=now)continue;
+    if(r.start<=now){
+      if(r.assignments.some(a=>!a.checkIn)&&!r.arrivalFollowUp&&r.start+5*minute<=now){
+        r.arrivalFollowUp=now;
+        r.arrivalFollowUpOwner=owner;
+        recordEvent(r,'Arrival not verified');
+        changed=true;
+      }
+      continue;
+    }
+    if(!r.backup&&r.supervisors===1&&r.start-now<=2*hour){
+      const candidate=sortedGuards(r).find(g=>g.tier===2&&preferencesFor(g.id).standby&&travelMinutes(g,r)+10<(r.start-now)/minute&&!eligibility(g,r,{forSwap:true}).length);
+      if(candidate){chooseBackup(r,candidate.id,'Supervisor');changed=true;}
+    }
+    if(!r.rush||!open(r)||r.followUp)continue;
+    const active=Object.values(r.offers).some(activeOffer);
+    const replies=guards.filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r).length);
+    const ready=replies.length>0;
+    const earliestDecision=Math.min(...replies.map(g=>{
+      const offer=offerFor(r,g);
+      const travel=offer.arrivalAt===null||offer.arrivalAt===undefined?travelMinutes(g,r):(offer.arrivalAt-offer.at)/minute;
+      return r.start-(travel+10)*minute;
+    }));
+    const pool=availableForWave(r);
+    const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-now)/minute);
+    if(!active&&!ready&&viable.length){
+      sendWave(r);changed=true;continue;
+    }
+    const urgentReview=earliestDecision<=now||r.start-now<=10*minute||!active&&!ready&&!viable.length;
+    const standbyReady=r.backup?.status==='Ready'&&(r.backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r));
+    if((urgentReview||standbyReady)&&!r.escalated){
+      r.escalated=true;
+      r.followUp={owner,at:now,due:now,automatic:true};
+      recordEvent(r,standbyReady?'Review standby for vacancy':'Manual follow-up due');
+      changed=true;
+    }
+  }
+  if(!changed)return null;
+  versionRequests(snapshot,data);
+  return data;
+}
+
+function coveragePlan(){
+  const slots=[];
+  for(const r of data.requests){
+    if(isPast(r)||r.start-data.now>4*hour||!open(r))continue;
+    const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r,{forSwap:true}).length);
+    for(const post of ['Supervisor','General']){
+      const total=post==='Supervisor'?gap(r):open(r)-gap(r);
+      if(total<=0)continue;
+      const b=r.backup;
+      const standby=b?.status==='Ready'&&b.post===post&&travelMinutes(guardBy(b.guard),r)*minute<=r.start-data.now&&!eligibility(guardBy(b.guard),r,{forSwap:true}).length?guardBy(b.guard):null;
+      const candidates=[...(standby?[standby]:[]),...volunteers.filter(g=>post!=='Supervisor'||g.tier===2)];
+      if(candidates.length)for(let index=0;index<Math.min(total,24);index++)slots.push({r,post,candidates});
+    }
+  }
+  slots.sort((a,b)=>Number(b.post==='Supervisor')-Number(a.post==='Supervisor')||a.candidates.length-b.candidates.length||a.r.start-b.r.start);
+  const choices=[];
+  for(const slot of slots){
+    const {r,post,candidates}=slot;
+    const g=candidates.find(candidate=>!choices.some(choice=>{
+      if(choice.guard!==candidate.id)return false;
+      const other=byId(choice.request);
+      const spacing=Math.max(other.start-r.end,r.start-other.end);
+      return overlaps(r,other)||spacing<(travelMinutes(candidate,r)+10)*minute;
+    }));
+    if(g)choices.push({request:r.id,guard:g.id,post,reason:candidates.length===1?'Only eligible '+post.toLowerCase():post==='Supervisor'?'Supervisor vacancy takes priority':'Best eligible remaining volunteer'});
+    if(choices.length>=24)break;
+  }
+  return choices;
+}
+
+function approveCoveragePlan(expected){
+  const plan=coveragePlan();
+  insist(Array.isArray(expected)&&plan.length&&JSON.stringify(expected)===JSON.stringify(plan.map(({request,guard,post})=>({request,guard,post}))),'The recommendation changed. Review the current plan.');
+  for(const choice of plan){
+    const r=byId(choice.request),g=guardBy(choice.guard);
+    if(r.backup?.guard===g.id&&r.backup.status==='Ready'&&r.backup.post===choice.post)activateBackup(r);
+    else assign(r,g,choice.post);
+  }
+  return plan.length+' assignments approved.';
+}
+
 if(typeof module!=='undefined') module.exports={
-  seed,migrate,project,
+  seed,migrate,project,tickDispatch,canApplyCommand,assignedSupervisor,attendanceWindow,recordQrArrival,
   execute(snapshot, command, account) {
     data=migrate(structuredClone(snapshot)); data.now=Date.now();
     const {role,client,guard,name:contact}=account;
@@ -432,7 +750,19 @@ if(typeof module!=='undefined') module.exports={
     const form=new Map(Object.entries(fields));
     const shift=byId(id);
     let message;
-    if(role==='admin'&&action==='adjust-assignment'){
+    if(role==='guard'&&action==='supervisor-review')message=supervisorReview(shift,guard,fields);
+    else if(role==='admin'&&action==='approve-plan')message=approveCoveragePlan(fields.plan);
+    else if(role==='client'&&action==='feedback'){
+      insist(shift&&siteBy(shift.site).client===client&&shift.end<=data.now&&shift.assignments.length,'Feedback is available after a staffed shift ends.');
+      const rating=Number(fields.rating);
+      insist(Number.isInteger(rating)&&rating>=1&&rating<=5&&!shift.clientFeedback,'Choose a rating from 1 to 5. Each shift accepts one response.');
+      shift.clientFeedback={rating,note:String(fields.note||'').slice(0,300),at:data.now};
+      recordEvent(shift,'Client feedback received');
+      message='Feedback recorded.';
+    }else if(role==='admin'&&action==='choose-backup'){
+      insist(shift,'Shift unavailable.');
+      message=chooseBackup(shift,Number(fields.guard),fields.post);
+    }else if(role==='admin'&&action==='adjust-assignment'){
       const g=guardBy(extra);
       const assigned=shift?.assignments.find(a=>a.guard===g?.id);
       insist(assigned&&!isPast(shift),'Upcoming assignment required.');
@@ -442,7 +772,9 @@ if(typeof module!=='undefined') module.exports={
       const moved=newRequest(data.next++,shift.site,start,duration,1,shift.tier,start-data.now<=2*hour,shift.notes);
       Object.assign(moved,{dress:shift.dress,force:shift.force,vehicle:shift.vehicle,contact:shift.contact,source:shift.source,supervisors:Number(assigned.post==='Supervisor')});
       shift.assignments=shift.assignments.filter(a=>a!==assigned);
-      shift.need--;shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
+      shift.need--;
+      if(!shift.need&&shift.backup)shift.backup.status='Released';
+      shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
       if(shift.offers[g.id])shift.offers[g.id].status='Rescheduled';
       for(const swap of data.swaps)if(swap.shift===shift.id&&swap.guard===g.id&&swap.status==='Pending')swap.status='Declined';
       recordEvent(shift,'Rescheduled by dispatch',g.id);
@@ -460,6 +792,7 @@ if(typeof module!=='undefined') module.exports={
       insist(typeof fields.note==='string'&&fields.note.trim(),'Enter the review basis.');
       assignment.review={arrival:fields.arrival,report:fields.report,note:String(fields.note||'').slice(0,200),by:contact,at:data.now};
       recordEvent(shift,'Duty review saved',Number(extra));
+      attendanceCache.delete(data);
       message='Duty record saved.';
     }else if(role==='admin'&&action==='call-note'){
       const g=guardBy(extra);
@@ -485,10 +818,11 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }
+    versionRequests(snapshot,data);
     return {state:data,message,selected:view.selected,checked:[...view.checked]};
   }
 };

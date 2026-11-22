@@ -3,7 +3,7 @@ const tag=(label,style='')=>`<span class="tag ${style}">${label}</span>`;
 const empty=(label)=>`<div class="empty">${label}</div>`;
 const option=(value,label,selected)=>`<option value="${safe(value)}"${value===selected?' selected':''}>${safe(label)}</option>`;
 const confirmedCount=r=>r.confirmed??r.assignments.length;
-const statusOf=(r)=>r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
+const statusOf=(r)=>r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
 const meter=(r)=>`<div class="progress" role="progressbar" aria-label="Confirmed guards" aria-valuenow="${confirmedCount(r)}" aria-valuemax="${r.need}"><div style="width:${r.need?100*confirmedCount(r)/r.need:0}%"></div></div>`;
 const coverage=(r)=>`${confirmedCount(r)} of ${r.need} confirmed`;
 const requestsForClient=()=>data.requests.filter(r=>siteBy(r.site).client===view.client);
@@ -33,12 +33,13 @@ function adminView() {
   const r=byId(view.selected);
   return `${hero('Administrator','Dispatch board','Review coverage, approve assignments, and manage schedule changes.')}
     <div class="stats secondary-metrics">${metrics.map(([label,value])=>`<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join('')}</div>
-    ${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
+    ${planPanel()}${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
     <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div>${activityPanel()}</div></div>`;
 }
 
 function queueDecision(r){
   if(!r.need)return 'Rescheduled';
+  if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 'Check missing arrivals · '+safe(r.arrivalFollowUpOwner||'Duty dispatcher');
   if(!open(r))return r.assignments.filter(a=>!a.ack).length+' briefs unread';
   if(isPast(r))return 'Coverage missed';
   const offers=Object.values(r.offers);
@@ -48,11 +49,20 @@ function queueDecision(r){
   return gap(r)?gap(r)+' supervisor needed':open(r)+' positions open';
 }
 
+function dispatchPriority(r){
+  if(r.end<=data.now)return 0;
+  if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 6;
+  if(r.recoveryOf&&open(r))return 5;
+  if(open(r)&&!isPast(r)&&r.followUp?.due<=data.now)return 4;
+  if(open(r)&&!isPast(r)&&waiting(r))return 3;
+  if(open(r)&&!isPast(r)&&r.rush)return 2;
+  return 1;
+}
 function queueResults() {
   const list=data.requests.filter(r=>{
     const statusMatches=view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&!open(r);
     return statusMatches&&siteBy(r.site).name.toLowerCase().includes(view.search.toLowerCase());
-  }).sort((a,b)=>Number(Boolean(open(b)&&b.rush&&!isPast(b)))-Number(Boolean(open(a)&&a.rush&&!isPast(a)))||a.start-b.start);
+  }).sort((a,b)=>dispatchPriority(b)-dispatchPriority(a)||a.start-b.start);
   const pageSize=6;
   const offset=view.page*pageSize;
   if(!list.length) return empty('No requests match these filters.');
@@ -74,23 +84,26 @@ function requestPanel(r) {
   const deadline=outstanding.length?Math.min(...outstanding.map(o=>Math.min(o.expires,o.replyDeadline||Infinity))):0;
   const expired=Object.values(r.offers).some(o=>o.status==='Invited'&&!activeOffer(o));
   const reviewable=volunteers.filter(g=>!eligibility(g,r).length);
-  const headline=!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
+  const headline=r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn)?'Verify missing arrivals':!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
   const blocker=r.escalated?(r.followUp?'Follow-up owned by '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':'due by '+formatTime(r.followUp.due)):'Manual follow-up flagged · owner needed.'):!open(r)?'Coverage complete. Confirmed guards can see site instructions.':isPast(r)?'Shift started with unfilled positions.':!pool.length&&!invited&&!volunteers.length?'No eligible replies or new guards. Take follow-up.':'';
-  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.dress?`<p class="sub">Dress code � ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
-  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged</span></div>${meter(r)}
+  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
+  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged · ${r.assignments.filter(a=>a.checkIn).length} checked in</span></div>${meter(r)}
   ${r.force||r.vehicle?tag([r.force?'Use-of-force check':'',r.vehicle?'Vehicle / key / lockbox check':''].filter(Boolean).join(' · '),'warn'):''}${blocker?`<p class="sub">${blocker}</p>`:''}
   ${r.replacement&&gap(r)&&!isPast(r)?`<p class="sub">${gap(r)===1?'A replacement supervisor is required.':`${gap(r)} replacement supervisors are required.`}</p>`:''}
   <div class="actions form-actions">${reviewable.length?button('Review volunteers','jump-review',r.id,'','primary'):!open(r)&&unread?button('Check unread briefs','jump-briefs',r.id,'','primary'):''}${open(r)&&!isPast(r)&&pool.length?button(r.rush?'Send offer wave':'Send regular offers','wave',r.id,'',reviewable.length||invited?'':'primary'):''}${open(r)&&r.followUp?.owner!==account.name?button(r.followUp?'Take over follow-up':'Take follow-up','escalate',r.id):''}</div>
-   ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id])=>tag(guardBy(id).name+' · '+id+' · '+(data.phoneGuards?.includes(Number(id))?'Phone registered':'No registered phone'))).join('')+'</div></details>':''}
-  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by estimated travel time, then reliability.':'Ranked by reliability, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
-  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Reliability</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
+   ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id,o])=>tag(guardBy(id).name+' · '+id+' · '+phoneOfferStatus(r,Number(id),o))).join('')+'</div></details>':''}
+  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by guard record after travel eligibility checks.':'Ranked by guard record, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
+  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
     const reasons=eligibility(g,r);
     const {projected,ot}=scheduleCheck(g,r);
     const matches=preferenceMatches(g,r,projected);
-    return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${attendance(g).onTime}/${attendance(g).completed} on time</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
+    return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${offerFor(r,g)?.arrivalAt?' · Latest ETA projects '+formatTime(data.now+offerFor(r,g).arrivalAt-offerFor(r,g).at):''} ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${rankDetails(g,r)}</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
   }).join('')}</tbody></table></div>`:empty('Responses will appear here for administrator approval.')}
   ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
-  ${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
+  ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
+  ${!a.checkIn&&r.end>data.now&&r.start-data.now<=15*minute?button('Verify arrival','verify-arrival',r.id,a.guard):''}
+  ${!a.checkIn&&r.end>data.now&&isPast(r)?button('Report no-show','no-show',r.id,a.guard,'danger'):''}
+  ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
 }
 
 function exclusionSummary(r) {
@@ -114,7 +127,7 @@ function clientView() {
   const f=view.prefill;
   const visibleSites=sites.filter(s=>s.client===view.client);
   return `${hero('Client','Request coverage','Submit coverage needs and track confirmations for your sites.')}
-  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} � ${formatTime(e.at)} � ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
+  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
   <details class="details"><summary>Paste fictional client email</summary><textarea id="email" rows="3" aria-label="Client email" placeholder="Need 10 extra guards at Maple in two hours for 4 hours"></textarea> ${button("Extract draft","extract")}</details><form id="create-request"><div class="fields"><label class="full">Site<select name="site" required>${visibleSites.map(s=>option(s.id,s.name,f.site)).join('')}</select></label>
   <label>Start date<input type="date" name="date" min="${inputDate(data.now)}" value="${inputDate(data.now+2*hour)}" required></label><label>Start time<input type="time" name="time" value="${inputTime(data.now+2*hour)}" required></label>
   <label>Duration (hours)<input type="number" name="hours" min="0.5" max="24" step="0.5" value="${f.hours??4}" required></label><label>Guards needed<input type="number" name="count" min="1" max="120" value="${f.count??1}" required></label>
@@ -176,7 +189,20 @@ document.addEventListener('click',event=>{
   }
   if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();return;}
   if(action==='cancel'&&!confirm('Remove this assignment and reopen the post?'))return;
+  if(action==='approve-plan'){
+    const plan=view.displayedPlan||[];
+    if(!plan.length)return;
+    if(plan.some(item=>byId(item.request).force||byId(item.request).vehicle)&&!confirm('Confirm the special-post credentials for this plan.'))return;
+    submitAction(action,'','',{plan:plan.map(({request,guard,post})=>({request,guard,post}))});return;
+  }
+  if(action==='volunteer'&&(r?.needsArrivalCheck||extra==='refresh-eta')){
+    const estimate=window.prompt('How many minutes would it take you to arrive at the site?');
+    if(estimate===null||!estimate.trim())return;
+    submitAction(action,id,estimate);return;
+  }
+  if(action==='no-show'&&!confirm('Record a no-show and open replacement coverage?'))return;
   if(action==='remove-window'){submitAction(action,id);return;}
+  if(action==='travel-alert'&&view.role==='guard'){toggleTravelAlert(Number(id));return;}
   if(action==='phone-alert'){managePhoneAlerts();return;}
   if(action==='reset'){if(confirm('Reset to the original fictional scenario?')) submitAction('reset','',data.scenario);return;}
   if(action==='jump-review'){document.querySelector('#volunteer-review')?.focus();return;}
@@ -222,6 +248,8 @@ document.addEventListener('submit',event=>{
   if(form.id==='login'){signIn(form);return;}
   if(!account)return;
   const values=new FormData(form);
+  if(form.id==='save-attendance-pin')return;
+  if(form.dataset.bookingAction){submitAction(form.dataset.bookingAction,form.dataset.request,'',Object.fromEntries(values));return;}
   if(form.id==='find-record'){const g=guardBy(Number(values.get('guard')));if(!g){announce('Unknown guard ID.',true);return;}view.recordGuard=g.id;view.recordOpen=true;render();return;}
   if(form.id==='review-duty'){submitAction('review-duty',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
   if(form.id==='call-log'){submitAction('call-note',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
@@ -233,7 +261,7 @@ document.addEventListener('submit',event=>{
   }
   if(form.id==='unavailable'){submitAction('unavailable','','',Object.fromEntries(values));return;}
   if(form.id==='preferences'){
-    submitAction('preferences','','',{days:values.getAll('days'),blocks:values.getAll('blocks'),maxHours:Number(values.get('maxHours')),rush:values.has('rush')});
+    submitAction('preferences','','',{days:values.getAll('days'),blocks:values.getAll('blocks'),maxHours:Number(values.get('maxHours')),rush:values.has('rush'),standby:values.has('standby')});
     return;
   }
   submitAction(form.dataset.swap?'swap-request':form.id,form.dataset.swap||'','',Object.fromEntries(values));
@@ -245,6 +273,7 @@ const apiOptions=body=>({method:'POST',headers:{'Content-Type':'application/json
 let account=null, revision=-1, busy=false, generation=0;
 
 function showLogin() {
+  clearTravelAlerts();
   account=null;
   revision=-1;
   generation++;
@@ -263,6 +292,7 @@ function showLogin() {
         <p id="login-role" class="small" aria-live="polite"></p>
         <label for="login-password">Password or PIN</label>
         <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        ${document.querySelector('meta[name="sigma-pilot-key-required"]')?'<label for="pilot-key">Pilot access key</label><input id="pilot-key" name="pilot" type="password" maxlength="512" required>':''}
         <button class="button primary" type="submit">Sign in</button>
       </form>
     </section>`;
@@ -322,12 +352,12 @@ async function submitAction(action,id='',extra='',fields={}) {
   busy=true;
   let completed=false;
   try{
-    const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,checked:[...view.checked],action,id,extra,fields}));
+    const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,requestVersion:byId(id)?.version||0,checked:[...view.checked],action,id,extra,fields}));
     const result=await response.json();
     if(response.status===401)showLogin();
     if(!response.ok)throw Error(result.error);
     install(result);
-    if(action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
+    if(action==='no-show'||action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
     if(action==='create-request'){view.template=null;view.prefill={};}
     view.checked=new Set(result.checked);
     render();
@@ -413,10 +443,47 @@ function startApp() {
     const clock=document.querySelector('.clock');
     if(clock)clock.textContent=formatTime(data.now);
     updateRushCountdown();
+    updateShiftAlerts();
   },1000);
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 document.addEventListener('DOMContentLoaded',startApp);
+const calendarSizes=[100,125,150];
+function calendarZoom(){
+  const index=view.calendarZoom||0;
+  return `<div class="calendar-zoom" role="group" aria-label="Calendar text size"><span>Text size</span>
+    <button type="button" class="button" data-calendar-zoom="-1" aria-label="Decrease calendar text size" ${index===0?'disabled':''}>−</button>
+    <output aria-live="polite">${calendarSizes[index]}%</output>
+    <button type="button" class="button" data-calendar-zoom="1" aria-label="Increase calendar text size" ${index===calendarSizes.length-1?'disabled':''}>+</button></div>`;
+}
+document.addEventListener('click',event=>{
+  const control=event.target.closest('[data-calendar-zoom]');
+  if(!control)return;
+  const container=control.closest('.calendar-scalable');
+  const next=Number(control.dataset.calendarZoom)+(view.calendarZoom||0);
+  if(!container||next<0||next>=calendarSizes.length)return;
+  view.calendarZoom=next;
+  container.dataset.calendarSize=calendarSizes[next];
+  container.querySelector('.calendar-zoom').outerHTML=calendarZoom();
+  const same=container.querySelector('[data-calendar-zoom="'+control.dataset.calendarZoom+'"]');
+  (same.disabled?container.querySelector('[data-calendar-zoom]:enabled'):same).focus({preventScroll:true});
+});
+function calendarMarker(kind,label){
+  return `<span class="calendar-marker calendar-${kind}"><span class="calendar-dot" aria-hidden="true"></span>${label}</span>`;
+}
+function weekShift(r){
+  const booked=r.assignments.length;
+  const confirmed=r.assignments.filter(a=>a.ack).length;
+  const available=open(r);
+  return `<button type="button" class="button week-shift" data-action="select" data-id="${r.id}">
+    <strong>${formatTime(r.start)}</strong>
+    ${booked?calendarMarker('booked',booked+' booked'):''}
+    ${available?calendarMarker('available',available+(isPast(r)?' unfilled':' available')):''}
+    ${confirmed?calendarMarker('booked',confirmed+' brief confirmed'):''}
+    ${booked>confirmed?calendarMarker('pending',(booked-confirmed)+' brief unconfirmed'):''}
+    ${!isPast(r)&&waiting(r)?calendarMarker('pending',waiting(r)+' awaiting approval'):''}
+  </button>`;
+}
 function weekBoard(){
   const today=inputDate(data.now);
   const monday=calendarDate(today,1-(new Date(today+'T12:00Z').getUTCDay()||7)+(view.weekOffset||0)*7);
@@ -424,9 +491,9 @@ function weekBoard(){
   const rows=sites.map(site=>{
     const shifts=data.requests.filter(r=>r.need&&r.site===site.id&&inputDate(r.start)<=dates[6]&&inputDate(r.end-1)>=monday);
     if(!shifts.length)return '';
-    return '<tr><th>'+safe(site.name)+'</th>'+dates.map(d=>'<td>'+shifts.filter(r=>inputDate(r.start)<=d&&inputDate(r.end-1)>=d).map(r=>button(formatTime(r.start)+' · '+coverage(r),'select',r.id)).join(' ')+'</td>').join('')+'</tr>';
+    return '<tr><th>'+safe(site.name)+'</th>'+dates.map(d=>'<td>'+shifts.filter(r=>inputDate(r.start)<=d&&inputDate(r.end-1)>=d).map(r=>weekShift(r)).join(' ')+'</td>').join('')+'</tr>';
   }).join('');
-  return `<details class="card" id="week-board" ${view.weekOpen?'open':''}><summary>Week by site</summary><div class="row">${button('Previous week','week',-1)}<strong>${monday} – ${dates[6]}</strong>${button('Next week','week',1)}</div><div style="overflow:auto"><table><thead><tr><th>Site</th>${dates.map(d=>'<th>'+d.slice(5)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  return `<details class="card calendar-scalable" id="week-board" data-calendar-size="${calendarSizes[view.calendarZoom||0]}" ${view.weekOpen?'open':''}><summary>Week by site</summary>${calendarZoom()}<div class="row">${button('Previous week','week',-1)}<strong>${monday} – ${dates[6]}</strong>${button('Next week','week',1)}</div><p class="sub">Booked means dispatch assigned a guard. Brief confirmation means the guard acknowledged the instructions.</p><div style="overflow:auto"><table><thead><tr><th>Site</th>${dates.map(d=>'<th>'+d.slice(5)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }
 function operationsTools(r){
   const id=view.recordGuard||r.cancelledGuard||r.assignments[0]?.guard||Number(Object.keys(r.offers)[0])||guards.find(g=>!g.available)?.id;
@@ -441,4 +508,52 @@ function operationsTools(r){
     <p>Fictional duty phone: <a href="tel:${g.phone.split(' ext ')[0]};ext=${g.id}">${safe(g.phone)}</a></p><form id="call-log" data-request="${r.id}" data-guard="${g.id}" class="wrap"><label>Call outcome <select name="outcome"><option>No answer</option><option>Unavailable</option><option>Will review offer</option></select></label><button class="button">Record follow-up</button></form></details>
     <details class="details" id="shift-history"><summary>Shift history</summary>${(r.history||[]).slice().reverse().map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)} ${e.guard?'· '+e.guard:''}</p>`).join('')||'No recorded changes.'}</details>
     ${r.assignments.length&&!isPast(r)?`<details id="adjust-post"><summary>Adjust an assigned shift</summary><form id="adjust-form" data-request="${r.id}" class="wrap"><label>Assigned guard<select name="guard">${r.assignments.map(a=>option(a.guard,guardBy(a.guard).name+' · '+a.guard)).join('')}</select></label><label>Date<input name="date" type="date" value="${inputDate(r.start)}" required></label><label>Start<input name="time" type="time" value="${inputTime(r.start)}" required></label><label>Hours<input name="hours" type="number" min=".5" max="24" step=".5" value="${(r.end-r.start)/hour}" required></label><button class="button">Reoffer revised post</button></form></details>`:''}`;
+}
+
+function rankDetails(g,r){
+  const record=attendance(g,r.site);
+  const supervisorSignal=record.fitCount?' · Supervisor fit '+(record.fitAdjustment>=0?'+':'')+record.fitAdjustment.toFixed(1)+' pts across '+record.fitCount+' shifts':'';
+  const feedback=record.feedback===null?'No site feedback':record.feedback.toFixed(1)+'/5 team feedback · '+record.feedbackCount+' shift rating(s)';
+  return `${Math.round(record.score)}/100 <details><summary>Score details</summary>${record.onTime}/${record.completed} on time · ${Math.round(record.reports*100)}% reports accepted · ${record.cancellations} cancellations · ${feedback}${supervisorSignal}</details>`;
+}
+function feedbackPanel(r){
+  if(r.end>data.now||!r.confirmed)return '';
+  if(r.feedback)return '<p class="sub">Coverage rated '+r.feedback.rating+'/5</p>';
+  return `<details id="feedback-${r.id}"><summary>Rate completed coverage</summary>
+    <form id="feedback-form-${r.id}" data-booking-action="feedback" data-request="${r.id}" class="fields">
+      <label>Service rating<select name="rating" required><option value="">Choose rating</option>${[1,2,3,4,5].map(n=>option(n,n+'/5')).join('')}</select></label>
+      <label>Notes<textarea name="note" maxlength="300"></textarea></label><button class="button">Submit feedback</button>
+    </form></details>`;
+}
+function standbyPanel(r){
+  if(!r.need||isPast(r))return '';
+  const b=r.backup;
+  const pending=b&&['Invited','Ready'].includes(b.status);
+  const matching=b?.post==='Supervisor'?gap(r)>0:open(r)>gap(r);
+  const candidates=pending?[]:sortedGuards(r).filter(g=>!eligibility(g,r,{forSwap:true}).length);
+  return `<details id="standby-panel" class="details"><summary>Standby coverage · ${pending?b.status:'Unassigned'}</summary>
+    ${pending?`<p>${safe(guardBy(b.guard).name)} · ${b.guard} · ${b.post}</p><div class="actions">${b.status==='Ready'&&matching?button('Approve standby for vacancy','activate-backup',r.id,'','primary'):''}${button('Release standby','release-backup',r.id)}</div>`:
+    `<form id="standby-form" data-booking-action="choose-backup" data-request="${r.id}" class="fields">
+      <label>Eligible standby<select name="guard" required><option value="">Choose guard</option>${candidates.map(g=>option(g.id,g.name+' · '+g.id+(g.tier===2?' · Supervisor':''))).join('')}</select></label>
+      <label>Post<select name="post"><option>General</option>${r.supervisors?'<option>Supervisor</option>':''}</select></label>
+      <button class="button">Invite standby</button>
+    </form>`}
+    ${r.rush&&open(r)>0&&availableForWave(r).length?button('Offer to all remaining eligible guards','broadcast',r.id):''}
+  </details>`;
+}
+
+function phoneOfferStatus(r,id,offer){
+  const accepted=data.phoneDelivery?.some(row=>row.shift===r.id&&row.guard===id&&row.offered===offer.at&&row.accepted);
+  if(accepted)return 'Push provider accepted';
+  const attempted=data.phoneDelivery?.find(row=>row.shift===r.id&&row.guard===id&&row.offered===offer.at);
+  if(attempted&&data.phoneGuards?.includes(id))return attempted.exhausted?'Push failed · follow up':'Push retry pending';
+  return data.phoneGuards?.includes(id)?'Awaiting push result':'No registered phone';
+}
+function planPanel(){
+  const plan=coveragePlan();
+  view.displayedPlan=plan;
+  if(!plan.length)return '';
+  return `<details class="card" id="coverage-plan"><summary>Coverage plan · ${plan.length} proposed</summary>
+    <ul>${plan.map(item=>`<li>${safe(siteBy(byId(item.request).site).name)} · ${formatTime(byId(item.request).start)} · ${item.post} · ${safe(guardBy(item.guard).name)} · ${safe(item.reason)}</li>`).join('')}</ul>
+    ${button('Approve proposed assignments','approve-plan','','','primary')}</details>`;
 }

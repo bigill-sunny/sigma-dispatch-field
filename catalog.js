@@ -23,6 +23,11 @@ for(let number=3;number<=100;number++){
   clients[client]=area+' Facilities '+number;
   sites.push({id:'site'+number,client,area,name:area+' Plaza '+number,uniform:'Black polo',notes:'Report to reception with your guard licence and collect the site briefing.'});
 }
+const areaCentres={Brampton:[43.7315,-79.7624],Mississauga:[43.5890,-79.6441],Vaughan:[43.8372,-79.5083],Toronto:[43.6532,-79.3832],Markham:[43.8561,-79.3370]};
+for(const [i,site] of sites.entries()){
+  const [lat,lon]=areaCentres[site.area];
+  site.coordinates=[lat+(i%7)*.003,lon-(i%5)*.003];
+}
 for(const [i,g] of guards.entries()){
   for(let offset=0;offset<5;offset++)g.trained.push('site'+(3+(i+offset*19)%98));
   if(i>=120){

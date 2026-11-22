@@ -1,5 +1,5 @@
-const shellCache='sigma-shell-v1';
-const shell=['/','/model.js','/app.js','/guard.js','/chat.js','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
+const shellCache='sigma-shell-v3';
+const shell=['/','/model.js','/app.js','/guard.js','/chat.js','/attendance-ui.js','/manifest.webmanifest','/icon-192.png','/icon-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(shellCache).then(cache=>cache.addAll(shell)));
@@ -16,7 +16,7 @@ self.addEventListener('fetch',event=>{
   }));
 });
 self.addEventListener('push',event=>{
-  event.waitUntil(self.registration.showNotification('Sigma Dispatch',{body:'A rush offer is available. Open Dispatch to check the deadline and reply.',tag:'sigma-rush',icon:'/icon-192.png'}));
+  event.waitUntil(self.registration.showNotification('Sigma Dispatch',{body:'Open Dispatch to review your latest offer or upcoming shift.',tag:'sigma-shift-update',icon:'/icon-192.png'}));
 });
 self.addEventListener('notificationclick',event=>{
   event.notification.close();

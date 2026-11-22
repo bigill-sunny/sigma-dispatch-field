@@ -35,7 +35,8 @@ async function run(){
       const form=client.locator('#create-request');
       await client.locator('#request-compose').evaluate(el=>el.open=true);
       const fields=await client.evaluate(({rush,i})=>{
-        const when=Date.now()+(rush?65+i:240+i)*60000;
+        if(!rush)return {date:calendarDate(inputDate(Date.now()),1),time:'17:'+String(i).padStart(2,'0')};
+        const when=Date.now()+(65+i)*60000;
         return {date:inputDate(when),time:inputTime(when)};
       },{rush,i});
       for(const [name,v] of Object.entries({...fields,notes:note,dress:'Black closed-toe shoes',hours:String(1+i%3)}))await form.locator('[name='+name+']').fill(v);
@@ -54,10 +55,15 @@ async function run(){
       await admin.evaluate(()=>refresh());
       await admin.waitForFunction(id=>!!byId(id),id);
       await admin.locator('#week-board').evaluate(el=>el.open=true);
-      if(!await admin.locator('#week-board [data-action=select][data-id="'+id+'"]').count())await admin.locator('[data-action=week][data-id="1"]').click();
+      const shiftWeek=await admin.evaluate(id=>{
+        const monday=date=>calendarDate(date,1-(new Date(date+'T12:00Z').getUTCDay()||7));
+        return Math.round((Date.parse(monday(inputDate(byId(id).start)))-Date.parse(monday(inputDate(data.now))))/(7*day));
+      },id);
+      const shownWeek=await admin.evaluate(()=>view.weekOffset||0);
+      if(shiftWeek!==shownWeek)await admin.locator('[data-action=week][data-id="'+Math.sign(shiftWeek-shownWeek)+'"]').click();
       await admin.locator('#week-board [data-action=select][data-id="'+id+'"]').first().click();
       const guardId=await admin.evaluate(({id,rush})=>{
-        const r=byId(id);return rush?Number(Object.keys(r.offers)[0]):availableForWave(r)[0].id;
+        const r=byId(id);return rush?Number(Object.keys(r.offers)[0]):availableForWave(r)[0]?.id;
       },{id,rush});
       assert(Number.isInteger(guardId),note+' should have an eligible guard');
       await login(guard,guardId,'Guard');
@@ -73,7 +79,10 @@ async function run(){
       if(!response.ok())throw Error(note+' volunteer: '+await response.text());
       await guard.waitForFunction(id=>byId(id)?.offer?.status==='Volunteered',id);
       await admin.evaluate(()=>refresh());
-      await admin.locator('[data-action=approve][data-id="'+id+'"][data-extra="'+guardId+'"]').click();
+      const approval=admin.waitForResponse(r=>r.url().endsWith('/api/actions'));
+      await admin.locator('[data-action=approve][data-id="'+id+'"][data-extra="'+guardId+'"]').evaluate(button=>button.click());
+      const approvalResult=await approval;
+      if(!approvalResult.ok())throw Error(note+' approval: '+await approvalResult.text());
       await admin.waitForFunction(id=>byId(id)?.assignments.length===1,id);
       await Promise.all([client.evaluate(()=>refresh()),guard.evaluate(()=>refresh())]);
       await client.waitForFunction(id=>byId(id)?.confirmed===1,id);

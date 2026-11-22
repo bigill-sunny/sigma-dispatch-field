@@ -8,7 +8,7 @@ const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
   const rush=rushOffers();
-  return `${rush.length?rushBanner(rush[0],rush.length):''}
+  return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
     ${({shifts:guardSchedule,open:guardAdditionalShifts,hours:guardHours,leave:guardLeave})[view.guardTab]()}`;
@@ -39,18 +39,31 @@ function updateRushCountdown() {
   }
   signalRush();
 }
-function monthCalendar(shifts){
+function guardCalendarStatus(r){
+  if(r.mine)return 'booked';
+  if(r.start<=data.now)return null;
+  if(r.offer?.status==='Volunteered'||r.backup)return 'pending';
+  if(r.canVolunteer&&(!r.offer||activeOffer(r.offer)))return 'available';
+  return null;
+}
+const calendarLabels={booked:'Booked',available:'Available',pending:'Unconfirmed'};
+const fallsOnDate=(r,date)=>inputDate(r.start)<=date&&inputDate(r.end-1)>=date;
+function monthCalendar(requests){
   const selected=view.calendarDate||inputDate(data.now);
   const first=selected.slice(0,7)+'-01';
   const offset=(new Date(first+'T12:00Z').getUTCDay()+6)%7;
   const label=new Intl.DateTimeFormat('en-CA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(first+'T12:00Z'));
-  return `<div class="calendar"><div class="row"><button type="button" data-month="-1" aria-label="Previous month">‹</button><strong>${label}</strong><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="days">
+  return `<div class="calendar calendar-scalable" data-calendar-size="${calendarSizes[view.calendarZoom||0]}">${calendarZoom()}<div class="row"><button type="button" data-month="-1" aria-label="Previous month">‹</button><strong>${label}</strong><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="days">
   ${['M','T','W','T','F','S','S'].map(d=>'<span>'+d+'</span>').join('')}
   ${Array.from({length:42},(_,i)=>{
     const date=calendarDate(first,i-offset);
-    const assigned=shifts.some(r=>inputDate(r.start)<=date&&inputDate(r.end-1)>=date);
-    return `<button type="button" data-date="${date}" aria-pressed="${selected===date}" aria-label="${date}${assigned?', scheduled':''}" class="${assigned?'scheduled ':''}${date.slice(0,7)!==first.slice(0,7)?'adjacent':''}">${Number(date.slice(-2))}</button>`;
-  }).join('')}</div></div>`;
+    const statuses=[...new Set(requests.filter(r=>fallsOnDate(r,date)).flatMap(r=>{
+      const status=guardCalendarStatus(r);
+      return r.mine&&!r.mine.ack?['booked','pending']:[status];
+    }).filter(Boolean))];
+    const labels=statuses.map(key=>calendarLabels[key]);
+    return `<button type="button" data-date="${date}" aria-pressed="${selected===date}" aria-label="${[date,...labels].join(', ')}" class="${date.slice(0,7)!==first.slice(0,7)?'adjacent':''}">${Number(date.slice(-2))}<span class="calendar-day-markers" aria-hidden="true">${statuses.map(key=>calendarMarker(key,'')).join('')}</span></button>`;
+  }).join('')}</div><div class="wrap calendar-legend">${Object.entries(calendarLabels).map(([key,label])=>calendarMarker(key,label)).join('')}</div></div>`;
 }
 document.addEventListener('click',event=>{
   const control=event.target.closest('[data-schedule-mode],[data-date],[data-month]');
@@ -73,30 +86,44 @@ function guardSchedule() {
   const phoneSupported=location.protocol!=='file:'&&'PushManager' in window&&'Notification' in window;
   const phoneOn=phoneSupported&&Notification.permission==='granted'&&data.phoneRegistered;
   const selected=view.calendarDate||inputDate(data.now);
-  const visible=view.scheduleMode==='Month'?shifts.filter(r=>inputDate(r.start)<=selected&&inputDate(r.end-1)>=selected):shifts;
-  return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p></section>`).join('')}
-    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} � ${formatDay(n.start)} ${formatTime(n.start)} � ${safe(n.status)}</p>`).join('')}</details>`:''}
+  const calendarRequests=data.requests.filter(guardCalendarStatus);
+  const monthMode=view.scheduleMode==='Month';
+  const visible=monthMode?shifts.filter(r=>fallsOnDate(r,selected)):shifts;
+  const opportunities=monthMode?calendarRequests.filter(r=>!r.mine&&fallsOnDate(r,selected)):[];
+  return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p>${r.rush?button('Update arrival estimate','volunteer',r.id,'refresh-eta'):''}</section>`).join('')}
+    ${data.requests.filter(r=>r.backup).map(r=>`<section class="card"><h2>Standby · ${safe(r.location.area)}</h2><p>${shiftTime(r)} · ${safe(r.backup.post)}</p><p>${r.backup.status==='Ready'?'On standby. Wait for dispatch approval before travelling.':'Can you cover this shift if needed?'}</p><div class="actions">${r.backup.status==='Invited'?button('Accept standby','standby-accept',r.id,'','primary'):''}${button(r.backup.status==='Ready'?'Withdraw standby':'Decline standby','standby-decline',r.id)}</div></section>`).join('')}
+    ${supervisorCrewPanel()}
+    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
     <section class="card schedule-card"><div class="section-top"><h2>Assignments</h2><div class="segments" aria-label="Schedule view">${['Agenda','Month'].map(mode=>`<button type="button" data-schedule-mode="${mode}" aria-pressed="${(view.scheduleMode||'Agenda')===mode}">${mode}</button>`).join('')}</div></div>
-    ${view.scheduleMode==='Month'?monthCalendar(shifts):''}
+    ${view.scheduleMode==='Month'?monthCalendar(calendarRequests):''}
     ${visible.length?visible.map((r,index)=>{
     const {name,uniform,notes,brief,dress}=r.location;
     const label=isPast(r)?'In progress':r===shifts[0]?'Next shift':'Upcoming';
-    return `<div class="entry"><div class="row"><strong class="shift-time">${formatTime(r.start)} – ${formatTime(r.end)}</strong>${tag(label,'good')}</div>
+    return `<div class="entry"><div class="row"><strong class="shift-time">${formatTime(r.start)} – ${formatTime(r.end)}</strong>${calendarMarker('booked','Booked · '+label)}</div>
+      <p class="sub">${calendarMarker(r.mine.ack?'booked':'pending',r.mine.ack?'Brief confirmed':'Brief unconfirmed')}</p>
       <p class="site-line">${safe(name)}</p><p class="sub">${shiftTime(r)} · ${safe(uniform)} · ${r.mine.post||'Confirmed'}${dress?' · '+safe(dress):''}</p>
-      <p class="check-in"><strong>Check-in</strong> ${safe(notes)}${brief?' '+safe(brief):''}</p>
+      <p class="sub" data-shift-reminder="${r.id}"></p>
+      ${!isPast(r)&&r.location.coordinates?`<div class="actions">${button(travelWatches.has(r.id)?'Stop travel alert':'Enable travel alert','travel-alert',r.id)}<span class="small" data-travel-status="${r.id}" aria-live="polite"></span></div>`:''}
+      <div class="actions" data-arrival-action="${r.id}">${arrivalAction(r)}</div>
+      <p class="check-in"><strong>Check-in instructions</strong> ${safe(notes)}${brief?' '+safe(brief):''}</p>
       <div class="actions form-actions">${r.mine.ack?tag(briefStatus(r),'good'):button('Acknowledge site brief','ack',r.id,'','primary')}</div>
       ${!isPast(r)?`<div class="actions form-actions">${r.pendingSwap?tag('Swap pending','warn'):r.peers.length?button('Offer to swap pool','pool',r.id):''}${button('Report cancellation','guard-cancel',r.id,'','danger')}</div>
       ${r.peers.length?`<details class="details"><summary>Propose swap to an eligible peer</summary>
         <form data-swap="${r.id}" class="wrap"><label>Eligible guard <select name="target" required><option value="">Choose a guard</option>${r.peers.map(peer=>option(peer.id,peer.name+' · '+peer.id)).join('')}</select></label><button class="button">Propose swap</button></form>
       </details>`:''}`:''}
     </div>`;
-  }).join(''):empty(view.scheduleMode==='Month'?'No current or upcoming assignment for this date.':'Your approved assignments will appear here.')}</section><section class="card"><h2>Rush alerts on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
+  }).join(''):opportunities.length?'':empty(monthMode?'No shifts or offers for this date.':'Your approved assignments will appear here.')}
+    ${opportunities.map(r=>{
+      const status=guardCalendarStatus(r);
+      const label=r.offer?.status==='Volunteered'?'Unconfirmed · awaiting dispatch approval':r.backup?'Unconfirmed · standby':'Available';
+      return `<div class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${calendarMarker(status,label)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${status==='available'?offerActions(r):''}</div>`;
+    }).join('')}</section><section class="card"><h2>Shift notifications on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
     ${phoneSupported?button(phoneOn?'Turn phone alerts off':'Turn phone alerts on','phone-alert'):''}
     ${button(alertGuard===account.id?'Mute in-app alerts':'Enable in-app alerts','alert-device')}</div></section>`;
 }
 function regularOfferCard(r) {
   const {area,uniform}=r.location;
-  return `<article class="entry"><strong>${r.rush?'Rush � ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
+  return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
   const regular=guardOpenShifts();
@@ -123,7 +150,8 @@ function guardHours() {
       <fieldset><legend>Shift blocks</legend><div class="wrap">${choices(blocks,profile.blocks,'blocks')}</div>
       <p class="sub">Morning 6 a.m.–noon · Afternoon noon–6 p.m. · Overnight 6 p.m.–6 a.m.</p></fieldset>
       <label>Maximum weekly hours target <input type="number" name="maxHours" min="1" max="168" step="0.5" value="${profile.maxHours}" required></label>
-      <label class="choice"><input type="checkbox" name="rush" ${profile.rush?'checked':''}> Receive last-minute rush offers</label>
+      <label class="choice"><input type="checkbox" name="standby" ${profile.standby?'checked':''}> Receive standby invitations for critical posts</label>
+      <label class="choice"><input type="checkbox" name="rush"  ${profile.rush?'checked':''}> Receive last-minute rush offers</label>
       <div class="actions"><button class="button primary">Save preferences</button></div>
     </form>
   </section>`;
@@ -204,3 +232,72 @@ async function managePhoneAlerts(){
   }catch(error){announce(error.message,true);}
 }
 
+
+const travelWatches=new Map();
+const remindedShifts=new Set();
+function clearTravelAlerts(){
+  for(const watch of travelWatches.values())navigator.geolocation.clearWatch(watch.handle);
+  travelWatches.clear();
+  remindedShifts.clear();
+}
+function travelEstimate(origin,destination){
+  const rad=Math.PI/180;
+  const [lat,lon]=origin.map(x=>x*rad);
+  const [destLat,destLon]=destination.map(x=>x*rad);
+  const a=Math.sin((destLat-lat)/2)**2+Math.cos(lat)*Math.cos(destLat)*Math.sin((destLon-lon)/2)**2;
+  return Math.ceil(12742*Math.asin(Math.sqrt(Math.min(1,a)))*1.35/35*60);
+}
+function updateShiftAlerts(){
+  if(!account||view.role!=='guard')return;
+  const now=Date.now();
+  for(const [id,watch] of travelWatches){
+    const r=byId(id);
+    if(!r?.mine||r.start<=now){
+      navigator.geolocation.clearWatch(watch.handle);
+      travelWatches.delete(id);
+      continue;
+    }
+    const status=document.querySelector('[data-travel-status="'+id+'"]');
+    if(!watch.position){if(status)status.textContent=watch.error||'Waiting for location';continue;}
+    const eta=travelEstimate(watch.position,r.location.coordinates);
+    const leave=r.start-(eta+10)*minute;
+    if(status)status.textContent='Estimated '+eta+' min drive · '+(leave<=now?'Leave now':'Leave by '+formatTime(leave))+' · 10 min arrival buffer';
+    if(leave<=now&&!watch.alerted){
+      watch.alerted=true;
+      announce('Leave now for '+r.location.name+'. Allow '+eta+' minutes plus the arrival buffer.');
+      navigator.vibrate?.(250);
+    }
+  }
+  for(const r of guardAssignments()){
+    const arrival=document.querySelector('[data-arrival-action="'+r.id+'"]');
+    const action=arrivalAction(r);
+    if(arrival&&arrival.dataset.current!==action){arrival.dataset.current=action;arrival.innerHTML=action;}
+    const remaining=r.start-now;
+    if(remaining<=0||remaining>hour)continue;
+    const message='Shift starts in '+Math.ceil(remaining/minute)+' min. '+(r.mine.ack?'Site brief acknowledged.':'Review and acknowledge the site brief.');
+    const label=document.querySelector('[data-shift-reminder="'+r.id+'"]');
+    if(label&&label.textContent!==message)label.textContent=message;
+    const key=r.id+':'+r.mine.at;
+    if(!remindedShifts.has(key)){remindedShifts.add(key);announce(r.location.name+' · '+message);}
+  }
+}
+function toggleTravelAlert(id){
+  const existing=travelWatches.get(id);
+  if(existing){navigator.geolocation.clearWatch(existing.handle);travelWatches.delete(id);render();return;}
+  if(!navigator.geolocation){announce('Location access is unavailable in this browser.',true);return;}
+  const watch={position:null,alerted:false};
+  travelWatches.set(id,watch);
+  watch.handle=navigator.geolocation.watchPosition(position=>{
+    watch.position=[position.coords.latitude,position.coords.longitude];
+    updateShiftAlerts();
+  },error=>{watch.error=error.code===1?'Location permission denied':'Location unavailable';updateShiftAlerts();},{maximumAge:60000,timeout:15000});
+  render();
+  updateShiftAlerts();
+}
+
+function arrivalAction(r){
+  if(r.mine.checkIn)return tag('Checked in at '+formatTime(r.mine.checkIn.at),'good');
+  if(r.start-data.now>15*minute||data.now>=r.end)return '';
+  if(data.qrAttendance)return button('Scan supervisor QR','open-attendance-scan',r.id,'','primary');
+  return button('I am on site · self-report','check-in',r.id,'','primary');
+}

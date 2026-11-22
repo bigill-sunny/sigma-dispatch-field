@@ -1,6 +1,6 @@
 const standaloneRequest=(()=>{
   const {demoAccounts,demoPassword,loginKey}=offlineBundle.accounts;
-  const {seed,project,execute}=offlineBundle.engine;
+  const {seed,project,execute,canApplyCommand}=offlineBundle.engine;
   const sessionKey='sigma-offline-account';
   let accountId=null, connection;
   try{accountId=Number(sessionStorage.getItem(sessionKey));}catch{}
@@ -44,7 +44,7 @@ const standaloneRequest=(()=>{
         const board=event.target.result;
         try{
           if(write){
-            if(command.revision!==board.revision||command.account!==user.id){
+            if(command.account!==user.id||!canApplyCommand(board.state,command,board.revision)){
               reply=response(409,{error:'The schedule changed. Review the updated board and try again.'});
               return;
             }

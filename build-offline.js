@@ -15,7 +15,7 @@ const offlineBundle=(()=>{
   load('./accounts.js',(module,require)=>{ ${read('accounts.js')} });
   return {engine:sources['./model.js'],accounts:sources['./accounts.js']};
 })();
-${['offline.js','model.js','app.js','guard.js','chat.js'].map(read).join('\n')}
+${['offline.js','model.js','app.js','guard.js','chat.js','attendance-ui.js'].map(read).join('\n')}
 `;
 new (require('node:vm').Script)(script);
 const html=read('index.html')

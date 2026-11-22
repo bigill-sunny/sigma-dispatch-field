@@ -1,0 +1,65 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {DatabaseSync}=require('node:sqlite');
+const {createRequire}=require('node:module');
+const jsQR=require('jsqr');
+const {PNG}=createRequire(require.resolve('qrcode'))('pngjs');
+const {attendanceService}=require('./attendance');
+const {seed,execute,project}=require('./model');
+const {demoAccounts}=require('./accounts');
+const account=id=>demoAccounts.find(a=>a.id===id);
+const current=Date.parse('2026-11-24T13:00:00Z');
+let now=current;
+Date.now=()=>now;
+const db=new DatabaseSync(':memory:');
+const service=attendanceService(db);
+const fixture=seed();
+const shift=fixture.requests.find(r=>r.id===2);
+shift.need=2;
+shift.assignments.push({guard:3009,post:'General',at:now});
+now=shift.start;
+const gps={latitude:43.58,longitude:-79.64,accuracy:15,capturedAt:now};
+const origin='https://sigma.example';
+function decode(image){
+  const png=PNG.sync.read(Buffer.from(image.split(',')[1],'base64'));
+  return new URL(jsQR(new Uint8ClampedArray(png.data),png.width,png.height).data);
+}
+(async()=>{
+  await assert.rejects(()=>service.issue(shift,account(3019),gps,origin,now),/pin/);
+  service.pin(shift.site,gps,[shift.id]);
+  await assert.rejects(()=>service.issue(shift,account(3009),gps,origin,now),/assigned supervisor/);
+  await assert.rejects(()=>service.issue(shift,account(3019),{...gps,latitude:44},origin,now),/inside/);
+  const first=decode((await service.issue(shift,account(3019),gps,origin,now)).image);
+  assert.equal(first.origin,origin);
+  const body={...gps,code:first.hash.split('.')[1]};
+  assert.throws(()=>service.redeem(fixture,shift,account(3010),body,now),/assigned/);
+  assert.throws(()=>service.redeem(fixture,shift,account(3009),{...body,accuracy:100},now),/imprecise/);
+  assert.throws(()=>service.redeem(fixture,shift,account(3009),{...body,capturedAt:now-61000},now),/fresh/);
+  assert.throws(()=>service.redeem(fixture,shift,account(3009),{...body,longitude:-78},now),/inside/);
+  const currentCode=decode((await service.issue(shift,account(3019),gps,origin,now)).image).hash.split('.')[1];
+  assert.throws(()=>service.redeem(fixture,shift,account(3009),body,now),/invalid/);
+  body.code=currentCode;
+  assert.throws(()=>service.redeem(fixture,shift,account(3009),body,now+181000),/expired/);
+  const removed=structuredClone(fixture);
+  const removedShift=removed.requests.find(r=>r.id===2);
+  removedShift.assignments=removedShift.assignments.filter(a=>a.guard!==3019);
+  assert.throws(()=>service.redeem(removed,removedShift,account(3009),body,now),/no longer assigned/);
+  const result=service.redeem(fixture,shift,account(3009),body,now);
+  const recorded=result.state.requests.find(r=>r.id===2);
+  assert.equal(recorded.assignments.find(a=>a.guard===3009).checkIn.method,'qr-location');
+  assert(!Object.hasOwn(recorded.assignments.find(a=>a.guard===3009).checkIn,'latitude'));
+  assert.equal(service.redeem(result.state,recorded,account(3009),body,now).state,result.state);
+  now=shift.end+1000;
+  const command={action:'supervisor-review',id:2,fields:{guard:3009,signal:'Site orientation',verdict:'Good fit',note:'Completed opening procedure.'}};
+  assert.throws(()=>execute(result.state,command,account(3010)),/assigned supervisor/);
+  assert(!project(result.state,account(3009)).state.requests.some(r=>r.crew));
+  const reviewed=execute(result.state,command,account(3019)).state;
+  const seen=project(reviewed,account(3019)).state.requests.find(r=>r.id===2).crew;
+  assert.equal(seen[0].review.note,'Completed opening procedure.');
+  const rank=require('node:vm').runInNewContext(require('node:fs').readFileSync('model.js','utf8')+
+    '\n(snapshot,clock,site)=>{data=snapshot;data.now=clock;return attendance(guardBy(3009),site);}',
+    {module:{exports:{}},require});
+  assert(rank(reviewed,now,'cedar').fitAdjustment>0);
+  assert.equal(rank(reviewed,now,'harbor').fitAdjustment,0);
+  console.log('Passed actual QR decoding, assigned roles, fresh/accurate proximity, rotation, expiry, reassignment, replay handling and scoped fit ranking.');
+})().catch(error=>{console.error(error);process.exitCode=1}).finally(()=>db.close());

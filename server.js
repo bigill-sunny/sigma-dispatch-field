@@ -5,8 +5,10 @@ const path=require('node:path');
 const {execFile}=require('node:child_process');
 const {randomBytes,createHash,scryptSync,timingSafeEqual}=require('node:crypto');
 const {DatabaseSync}=require('node:sqlite');
-const {seed,execute,project}=require('./model.js');
+const {seed,execute,project,tickDispatch,canApplyCommand}=require('./model.js');
 const {demoAccounts,demoPassword,loginKey}=require('./accounts.js');
+const {attendanceService}=require('./attendance.js');
+const {sites}=require('./catalog.js');
 
 (function loadDotEnv(){
   const envPath=path.join(__dirname,'.env');
@@ -23,11 +25,15 @@ const {demoAccounts,demoPassword,loginKey}=require('./accounts.js');
   }
 })();
 
-const port=Number(process.env.SIGMA_PORT||4173);
-const host=process.env.SIGMA_HOST||'127.0.0.1';
+const onRender=Boolean(process.env.RENDER_EXTERNAL_URL);
+const pilotKey=process.env.SIGMA_PILOT_KEY||'';
+if(onRender&&pilotKey.length<20)throw Error('Set SIGMA_PILOT_KEY to a private access key at least 20 characters long.');
+const port=Number(process.env.SIGMA_PORT||process.env.PORT||4173);
+const publicOrigin=process.env.SIGMA_ORIGIN||process.env.RENDER_EXTERNAL_URL;
+const host=process.env.SIGMA_HOST||(onRender?'0.0.0.0':'127.0.0.1');
 const origins=new Set(['http://127.0.0.1:'+port,'http://localhost:'+port]);
-if(process.env.SIGMA_ORIGIN)origins.add(new URL(process.env.SIGMA_ORIGIN).origin);
-if(host!=='127.0.0.1'&&!process.env.SIGMA_ORIGIN)throw Error('Set SIGMA_ORIGIN to the URL used to open the app.');
+if(publicOrigin)origins.add(new URL(publicOrigin).origin);
+if(host!=='127.0.0.1'&&!publicOrigin)throw Error('Set SIGMA_ORIGIN to the URL used to open the app.');
 const hosts=new Set([...origins].map(origin=>new URL(origin).host));
 const db=new DatabaseSync(process.env.SIGMA_DB||path.join(__dirname,'dispatch.sqlite'));
 db.exec(`
@@ -58,17 +64,34 @@ db.prepare('INSERT OR IGNORE INTO board VALUES(1,0,?)').run(JSON.stringify(seed(
 }
 
 const push=require("./push.js")(db);
+const attendance=attendanceService(db);
 const linked=db.prepare('SELECT endpoint FROM push_devices WHERE session=?');
 const registered=db.prepare('SELECT DISTINCT user_id FROM push_devices JOIN sessions ON session=token_hash WHERE expires>?');
 function workspace(state,account,token){
   const record=project(state,account);
-  if(account.role==='admin')record.state.phoneGuards=registered.all(Date.now()).map(row=>row.user_id);
+  record.state.qrAttendance=true;
+  if(account.role==='admin'){
+    record.state.attendanceSites=sites.filter(site=>attendance.hasPin(site.id)).map(site=>site.id);
+    record.state.phoneGuards=registered.all(Date.now()-30*86400000).map(row=>row.user_id);
+    record.state.phoneDelivery=push.status();
+  }
   if(account.role==='guard')record.state.phoneRegistered=Boolean(linked.get(hashToken(token)));
   return record;
 }
 db.exec(`CREATE TRIGGER IF NOT EXISTS device_added AFTER INSERT ON push_devices BEGIN UPDATE board SET revision=revision+1 WHERE id=1; END;
 CREATE TRIGGER IF NOT EXISTS device_removed AFTER DELETE ON push_devices BEGIN UPDATE board SET revision=revision+1 WHERE id=1; END;`);
 const read=db.prepare('SELECT revision,state FROM board WHERE id=1');
+const reminderTimer=setInterval(()=>{
+  try{
+    const row=read.get();
+    const snapshot=JSON.parse(row.state);
+    const next=tickDispatch(snapshot,Date.now(),process.env.SIGMA_DUTY_DISPATCHER);
+    const board=next&&save.run(JSON.stringify(next),row.revision).changes?next:snapshot;
+    push.syncOffers(board.requests).catch(error=>console.warn('Offer delivery check failed:',error.message));
+    push.remind(board.requests).catch(error=>console.warn('Shift reminder check failed:',error.message));
+  }catch(error){console.warn('Dispatch check failed:',error.message);}
+},15000);
+reminderTimer.unref();
 const save=db.prepare('UPDATE board SET state=?,revision=revision+1 WHERE id=1 AND revision=?');
 const findUser=db.prepare('SELECT users.* FROM users JOIN login_aliases ON users.id=user_id WHERE alias=?');
 const findSession=db.prepare('SELECT users.id,role,name,client_id FROM sessions JOIN users ON users.id=user_id WHERE token_hash=? AND expires>?');
@@ -86,6 +109,7 @@ const files=new Map([
   ['/',['index.html','text/html']],['/app.js',['app.js','text/javascript']],['/model.js',['model.js','text/javascript']],
   ['/guard.js',['guard.js','text/javascript']],['/chat.js',['chat.js','text/javascript']],
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/sw.js',['sw.js','text/javascript']],
+  ['/attendance-ui.js',['attendance-ui.js','text/javascript']],['/qr-reader.js',[require.resolve('jsqr'),'text/javascript']],
   ['/icon-192.png',['icon-192.png','image/png']],['/icon-512.png',['icon-512.png','image/png']]
 ]);
 function send(res,status,body,headers={}) {
@@ -214,9 +238,11 @@ const server=http.createServer(async (req,res)=>{
   try{
     if(!hosts.has(req.headers.host))return send(res,403,{error:'Use the configured app address.'});
     const url=new URL(req.url,'http://127.0.0.1');
+    if(req.method==='GET'&&url.pathname==='/health')return send(res,200,{ok:true});
     if(req.method==='GET'&&files.has(url.pathname)){
       const [name,type]=files.get(url.pathname);
-      const asset=fs.readFileSync(path.join(__dirname,name));
+      let asset=fs.readFileSync(path.resolve(__dirname,name));
+      if(url.pathname==='/'&&pilotKey)asset=asset.toString('utf8').replace('<head>','<head><meta name="sigma-pilot-key-required" content="yes">');
       res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
       return res.end(asset);
     }
@@ -226,7 +252,7 @@ const server=http.createServer(async (req,res)=>{
     const secure=post&&origin.startsWith('https:');
     const token=sessionToken(req);
     if(post&&url.pathname==='/api/login'){
-      const {login,password}=await readBody(req);
+      const {login,password,pilot}=await readBody(req);
       if(typeof login!=='string'||typeof password!=='string'||login.length>160||password.length>256)return send(res,400,{error:'Enter your account and password.'});
       const now=Date.now();
       for(const [key,limit] of attempts)if(limit.until<=now)attempts.delete(key);
@@ -235,13 +261,15 @@ const server=http.createServer(async (req,res)=>{
       if(limit.failures>=12)return send(res,429,{error:'Too many sign-in attempts. Try again in a minute.'}, {'Retry-After':'60'});
       const user=findUser.get(loginKey(login));
       const check=scryptSync(password,user?.salt||dummySalt,64);
-      if(!timingSafeEqual(check,user?.password_hash||dummyHash)||!user){
+      const pilotValid=!pilotKey||(typeof pilot==='string'&&timingSafeEqual(
+        createHash('sha256').update(pilot.slice(0,512)).digest(),createHash('sha256').update(pilotKey).digest()));
+      if(!pilotValid||!timingSafeEqual(check,user?.password_hash||dummyHash)||!user){
         limit.failures++;
         attempts.set(ip,limit);
         return send(res,401,{error:'Check your account and password.'});
       }
       if(token)deleteSession.run(hashToken(token));
-      db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
+      db.prepare('DELETE FROM sessions WHERE expires<=? AND (expires<=? OR NOT EXISTS (SELECT 1 FROM push_devices WHERE session=token_hash))').run(now,now-30*86400000);
       const nextToken=randomBytes(32).toString('hex');
       createSession.run(hashToken(nextToken),user.id,now+lifetime*1000);
       return send(res,200,{account:identity(user)},{'Set-Cookie':cookie(nextToken,lifetime,secure)});
@@ -253,6 +281,27 @@ const server=http.createServer(async (req,res)=>{
     const user=token&&findSession.get(hashToken(token),Date.now());
     if(!user)return send(res,401,{error:'Sign in to continue.'});
     const account=identity(user);
+    if(post&&url.pathname.startsWith('/api/attendance/')){
+      const body=await readBody(req);
+      const row=read.get();
+      const snapshot=JSON.parse(row.state);
+      const shift=snapshot.requests.find(r=>r.id===Number(body.requestId));
+      if(url.pathname==='/api/attendance/pin'&&account.role==='admin'){
+        const site=sites.find(s=>s.id===body.site);
+        if(!site)return send(res,400,{error:'Choose a valid site.'});
+        attendance.pin(site.id,body,snapshot.requests.filter(r=>r.site===site.id).map(r=>r.id));
+        db.exec('UPDATE board SET revision=revision+1 WHERE id=1');
+        return send(res,200,{message:'Attendance site pin saved.'});
+      }
+      if(url.pathname==='/api/attendance/issue')return send(res,200,await attendance.issue(shift,account,body,origin,Date.now()));
+      if(url.pathname==='/api/attendance/redeem'){
+        const result=attendance.redeem(snapshot,shift,account,body,Date.now());
+        if(result.state!==snapshot&&!save.run(JSON.stringify(result.state),row.revision).changes)
+          return send(res,409,{error:'The shift changed. Scan the current code and retry.'});
+        return send(res,200,{message:result.message});
+      }
+      return send(res,403,{error:'Attendance action unavailable for this account.'});
+    }
     if(url.pathname==='/api/push'&&account.role==='guard'){
       if(!post&&req.method==='GET')return send(res,200,{publicKey:push.publicKey});
       if(post){
@@ -285,24 +334,22 @@ ${JSON.stringify(context)}`;
       return send(res,200,{revision:row.revision,account,...workspace(JSON.parse(row.state),account,token)});
     }
     const command=await readBody(req);
+    if(command.action==='check-in'&&account.role==='guard')
+      return send(res,400,{error:'Scan the assigned supervisor’s QR code to check in.'});
     const row=read.get();
     const conflict={error:'The schedule changed. Review the updated board and try again.'};
-    if(command.revision!==row.revision||command.account!==account.id)return send(res,409,conflict);
     const parsedState=JSON.parse(row.state);
+    if(command.account!==account.id||!canApplyCommand(parsedState,command,row.revision))return send(res,409,conflict);
     const result=execute(parsedState,command,account);
     if(!save.run(JSON.stringify(result.state),row.revision).changes)return send(res,409,conflict);
-    for(const request of result.state.requests.filter(r=>r.rush&&Object.values(r.offers).some(o=>o.status==="Invited"))){
-
-      const previous=parsedState.requests.find(r=>r.id===request.id);
-      push.wave(request,previous?.offers||{}).catch(()=>console.warn("Rush notification dispatch failed."));
-    }
+    push.syncOffers(result.state.requests).catch(()=>console.warn('Rush notification dispatch failed.'));
     send(res,200,{...result,...workspace(result.state,account,token),account,revision:row.revision+1});
   }catch(error){send(res,400,{error:error.message});}
 });
 
 server.on('error',error=>{console.error('Could not start Sigma Dispatch.',error.message);process.exitCode=1;});
 server.listen(port,host,()=>{
-  const address=process.env.SIGMA_ORIGIN||'http://127.0.0.1:'+port;
+  const address=publicOrigin||'http://127.0.0.1:'+port;
   console.log('Sigma Dispatch is running at '+address);
   if(process.platform==='win32'&&process.argv.includes('--open')){
     execFile('rundll32.exe',['url.dll,FileProtocolHandler',address],{windowsHide:true},error=>{

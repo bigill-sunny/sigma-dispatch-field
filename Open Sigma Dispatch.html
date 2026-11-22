@@ -20,7 +20,7 @@
     .preference-form{display:grid;gap:12px;margin-top:12px}.preference-form fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.preference-form legend{font-weight:650}.preference-form input[type=number]{max-width:180px}.choice{min-height:42px;display:inline-flex;align-items:center;gap:6px;padding:4px;font-weight:600}
     .chat-trigger{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:5;min-height:46px;border-radius:50px;padding-inline:18px}.chat-drawer{position:fixed;z-index:4;bottom:calc(75px + env(safe-area-inset-bottom));right:16px;width:min(420px,calc(100% - 32px));max-height:min(70dvh,640px);display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 35px #11243a33}.chat-messages{overflow:auto;min-height:70px;flex:1;display:flex;flex-direction:column;gap:8px}.chat-line{background:#eff5f4;border-radius:8px;padding:9px;overflow-wrap:anywhere}.chat-line.you{background:#dff4eb;align-self:flex-end}.chat-line p+.button{margin-top:8px}.chat-suggestions{display:flex;gap:5px;overflow:auto}.chat-suggestions button{flex:none}#chat-form input{flex:1;min-width:0}#chat-form{flex-wrap:nowrap}
     @media(max-width:570px){.guard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.rush-banner .offer-actions .button{flex:1}.chat-drawer{padding:12px}.shell:has(+ #chat .chat-trigger){padding-bottom:84px}}
-  
+
     .decision-title{display:block;font-size:1.1rem;margin:6px 0}.mobile-back{display:none}.secondary-metrics{margin-bottom:12px}.metric strong{font-size:1.25rem}.hero h1{font-size:1.8rem}
     @media(max-width:760px){.dispatch-grid .request-column,.dispatch-grid.detail-open .queue-column{display:none}.dispatch-grid.detail-open .request-column{display:block}.mobile-back{display:inline-block;margin-bottom:12px}.shell:has(.detail-open) .stats{display:none}.table-wrap table,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block}.table-wrap thead{position:absolute;clip-path:inset(50%)}.table-wrap tr{border:1px solid var(--line);padding:10px;margin-bottom:8px;border-radius:8px}.table-wrap td{border:0;text-align:left;padding:4px}.table-wrap td:nth-child(3)::before{content:'On-time record · '}.table-wrap td:nth-child(4)::before{content:'Hours on board · '}.table-wrap td:nth-child(5)::before{content:'Preferences · '}.button{min-height:44px}}
   :root{--nav:#11243a;--teal:#214d76;--line:#d5dee6;--muted:#4d6172;color:#172c40;background:#eef2f5}
@@ -30,7 +30,35 @@ header{background:var(--nav);border-bottom:3px solid #a98950}.brand{letter-spaci
 @media(max-width:760px){
 .shell:has(.guard-tabs){padding-bottom:155px}.guard-tabs{position:fixed;z-index:6;bottom:0;left:0;right:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--line);background:white;padding:3px 4px max(4px,env(safe-area-inset-bottom));box-shadow:0 -3px 12px #12284a0d}.guard-tabs button{border:0;border-radius:6px;display:grid;justify-items:center;align-content:center;gap:3px;min-height:56px;font-size:.73rem}.nav-icon{display:block;width:21px;height:21px;font:700 20px/21px system-ui}.nav-shifts:before{content:'▦'}.nav-open:before{content:'⇄'}.nav-leave:before{content:'◷'}.nav-hours:before{content:'☷'}
 body:has(.guard-tabs) .chat-trigger{bottom:calc(76px + env(safe-area-inset-bottom))}body:has(.guard-tabs) .chat-drawer{bottom:calc(131px + env(safe-area-inset-bottom));max-height:55dvh}.head{min-height:56px}.command{margin-bottom:12px;padding-bottom:8px}.field-heading{margin:8px 0 14px}.shell:has(.guard-tabs) .entry select{max-width:100%}
-}</style>
+}
+    .calendar-marker{display:inline-flex;align-items:center;gap:5px;font-size:.77rem;line-height:1.3;font-weight:700;color:var(--marker-text);white-space:nowrap}
+    .calendar-booked{--marker:#25e779;--marker-edge:#13753d;--marker-text:#176439}
+    .calendar-available,.calendar-pending{--marker:#ff5157;--marker-edge:#a62437;--marker-text:#9d2336}
+    .calendar-dot{display:inline-block;width:9px;height:9px;border:1px solid var(--marker-edge);border-radius:50%;background:var(--marker);flex:none}
+    .calendar-pending .calendar-dot{background:white;border:2px solid var(--marker)}
+    .days button .calendar-day-markers{position:absolute;bottom:3px;left:0;right:0;padding:0;display:flex;justify-content:center;gap:3px}
+    .days button .calendar-marker,.days button .calendar-dot{padding:0}
+    .days button .calendar-dot{width:7px;height:7px}
+    .calendar-legend{border-top:1px solid var(--line);margin-top:8px;padding-top:9px;gap:12px}
+    .week-shift{display:grid;text-align:left;gap:3px;margin:2px 0;min-width:9.5rem}
+
+    .calendar-zoom{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+    .calendar-zoom button{min-width:44px;min-height:44px;border:1px solid var(--line);font-size:1.15rem}
+    .calendar-zoom button:disabled{opacity:.45;cursor:default}
+    .calendar-zoom output{min-width:4ch;text-align:center;font-variant-numeric:tabular-nums}
+    .calendar-scalable{--calendar-scale:1}
+    .calendar-scalable[data-calendar-size="125"]{--calendar-scale:1.25}
+    .calendar-scalable[data-calendar-size="150"]{--calendar-scale:1.5}
+    .calendar-scalable .days button,.calendar-scalable .row strong,.calendar-scalable .week-shift>strong{font-size:calc(1rem * var(--calendar-scale))}
+    .calendar-scalable .calendar-marker,.calendar-scalable th,.calendar-scalable .days>span{font-size:calc(.77rem * var(--calendar-scale))}
+    .calendar-scalable .days button{min-height:calc(44px * var(--calendar-scale))}
+    .calendar-scalable .week-shift{min-width:calc(9.5rem * var(--calendar-scale))}
+
+    .attendance-dialog{width:min(480px,calc(100% - 24px));max-height:90vh;border:1px solid var(--line);border-radius:12px;padding:20px}
+    .attendance-dialog::backdrop{background:#11243acc}
+    .attendance-dialog img,.attendance-dialog video{width:100%;max-height:55vh;object-fit:contain;margin:12px 0}
+    .attendance-fit{margin-block:10px;padding-block:8px;border-top:1px solid var(--line)}
+  </style>
 </head>
 <body>
   <header><div class="head"><div class="brand"><span class="mark" aria-hidden="true">Σ</span>Sigma Dispatch</div><div id="account"></div></div></header>
@@ -69,6 +97,11 @@ for(let number=3;number<=100;number++){
   clients[client]=area+' Facilities '+number;
   sites.push({id:'site'+number,client,area,name:area+' Plaza '+number,uniform:'Black polo',notes:'Report to reception with your guard licence and collect the site briefing.'});
 }
+const areaCentres={Brampton:[43.7315,-79.7624],Mississauga:[43.5890,-79.6441],Vaughan:[43.8372,-79.5083],Toronto:[43.6532,-79.3832],Markham:[43.8561,-79.3370]};
+for(const [i,site] of sites.entries()){
+  const [lat,lon]=areaCentres[site.area];
+  site.coordinates=[lat+(i%7)*.003,lon-(i%5)*.003];
+}
 for(const [i,g] of guards.entries()){
   for(let offset=0;offset<5;offset++)g.trained.push('site'+(3+(i+offset*19)%98));
   if(i>=120){
@@ -94,7 +127,7 @@ let {sites,clients,guards}=typeof module!=='undefined'?require('./catalog.js'):{
 const guardId=id=>Number(id)>0&&Number(id)<=120?3000+Number(id):Number(id);
 const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const blocks=['Morning','Afternoon','Overnight'];
-const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true};
+const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true,standby:false};
 
 function migrate(snapshot) {
   if(snapshot.version===2)return snapshot;
@@ -162,13 +195,12 @@ function requestCalendar(r){
   const dow=(new Date(inputDate(midnight)+'T12:00Z').getUTCDay()+6)%7;
   const dateAt=i=>new Date(Date.parse(inputDate(midnight)+'T12:00Z')+i*day).toISOString().slice(0,10);
   const monday=localTime(dateAt(-dow),'00:00'),weekEnd=localTime(dateAt(7-dow),'00:00');
-  const bounds=Array.from({length:3},(_,i)=>localTime(dateAt(i),'00:00'));
-  const calendar={monday,weekEnd,bounds};
+  const calendar={monday,weekEnd};
   calendarCache.set(r,calendar);
   return calendar;
 }
 function scheduleCheck(g,r){
-  const {monday,weekEnd,bounds}=requestCalendar(r);
+  const {monday,weekEnd}=requestCalendar(r);
   const duties=data.requests.filter(x=>r.id!==x.id&&x.assignments.some(a=>a.guard===g.id));
   const hours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd)-Math.max(x.start,monday))/hour,0);
   const nextHours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd+7*day)-Math.max(x.start,weekEnd))/hour,0);
@@ -177,14 +209,41 @@ function scheduleCheck(g,r){
   const crossesWeek=r.end>weekEnd;
   const projected=crossesWeek?Math.max(firstWeek,secondWeek):firstWeek;
   const overtime=Math.max(0,firstWeek-44)-Math.max(0,hours-44)+(crossesWeek?Math.max(0,secondWeek-44)-Math.max(0,nextHours-44):0);
-  let rest=duties.some(x=>{const spacing=Math.max(x.start-r.end,r.start-x.end);return spacing>=0&&spacing<8*hour&&x.end-x.start+r.end-r.start>13*hour;});
-  for(let d=0;d<2;d++){const start=bounds[d],end=bounds[d+1];if(r.end<=start)break;
-    let cursor=start,longest=0;
-    for(const x of [...duties,r].filter(x=>x.start<end&&x.end>start).sort((a,b)=>a.start-b.start)){longest=Math.max(longest,x.start-cursor);cursor=Math.max(cursor,Math.min(end,x.end));}
-    rest ||= Math.max(longest,end-cursor)<11*hour;
-  }
+  const shifts=[...duties,r].sort((a,b)=>a.start-b.start);
+  const rest=insufficientRest(shifts,r);
   return {rest,projected,ot:overtime,review:(g.id-3000)%23===0};
 }
+function insufficientRest(shifts,proposed){
+  let cycleStart=shifts[0].start;
+  let cycle=[];
+  const dailyRestFailed=()=>{
+    if(!cycle.includes(proposed))return false;
+    for(let start=cycleStart;start<cycle.at(-1).end;start+=day){
+      const end=start+day;
+      let cursor=start,longest=0;
+      for(const shift of cycle){
+        if(shift.end<=start||shift.start>=end)continue;
+        longest=Math.max(longest,shift.start-cursor);
+        cursor=Math.max(cursor,Math.min(end,shift.end));
+      }
+      if(Math.max(longest,end-cursor)<11*hour)return true;
+    }
+    return false;
+  };
+  for(const shift of shifts){
+    const previous=cycle.at(-1);
+    if(previous){
+      const gap=shift.start-previous.end;
+      if(gap>=day){
+        if(dailyRestFailed())return true;
+        cycleStart=shift.start;cycle=[];
+      }else if((previous===proposed||shift===proposed)&&gap>=0&&gap<8*hour&&previous.end-previous.start+shift.end-shift.start>13*hour)return true;
+    }
+    cycle.push(shift);
+  }
+  return dailyRestFailed();
+}
+
 function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
@@ -203,10 +262,17 @@ function eligibility(g,r,{forSwap=false}={}) {
   if(!g.available) reasons.push('Marked unavailable');
   if(data.leaves.some(l=>l.guard===g.id&&l.status==='Approved'&&overlaps(l,r))) reasons.push('Approved leave');
   if(r.cancelledGuard===g.id||r.cancelledGuards?.includes(g.id)) reasons.push('Cancelled this shift');
+  if(!forSwap&&r.backup?.guard===g.id&&r.backup.status==='Ready')reasons.push('Reserved as standby');
   if(r.assignments.some(a=>a.guard===g.id)) reasons.push('Already assigned here');
-  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&other.assignments.some(a=>a.guard===g.id))) reasons.push('Overlapping assignment');
+  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&(other.assignments.some(a=>a.guard===g.id)||other.backup?.guard===g.id&&other.backup.status==='Ready'))) reasons.push('Overlapping assignment');
   if(remaining<=0) reasons.push('Shift already started');
-  else if(travelMinutes(g,r)>remaining) reasons.push('Estimated arrival is too late');
+  else {
+    const response=r.offers[g.id];
+    if(r.rush&&response?.status==='Volunteered'){
+      const travel=Number.isFinite(response.arrivalAt)?response.arrivalAt-response.at:travelMinutes(g,r)*minute;
+      if(data.now+travel>r.start)reasons.push('Departure window passed. Ask the guard for a current ETA.');
+    }
+  }
   if(open(r)<=0&&!forSwap) reasons.push('All positions filled');
   return reasons;
 }
@@ -217,24 +283,62 @@ function travelMinutes(g,r){
   return Math.max(5,g.eta+areaIndex*(3+(g.id%8)));
 }
 const attendanceCache=new WeakMap();
-function attendance(g){
+function attendance(g,siteId){
   let index=attendanceCache.get(data);
   if(!index){
     index=new Map();
-    for(const r of data.requests)for(const a of r.assignments||[]){
-      if(!a.review)continue;
-      const record=index.get(a.guard)||{onTime:0,completed:0};
-      record.completed++;
-      if(a.review.arrival==='On time')record.onTime++;
-      index.set(a.guard,record);
+    const stats=id=>{
+      if(!index.has(id))index.set(id,{onTime:0,completed:0,accepted:0,cancelled:0,ratings:new Map(),fit:new Map()});
+      return index.get(id);
+    };
+    for(const r of data.requests){
+      for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
+      if(r.end<=data.now){
+        for(const review of r.fitReviews||[]){
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          const fit=stats(review.guard).fit;
+          const previous=fit.get(r.site)||new Map();
+          const scores=previous.get(r.id)||[];
+          scores.push(review.verdict==='Good fit'?1:review.verdict==='Needs coaching'?0.5:0);
+          previous.set(r.id,scores);
+          fit.set(r.site,previous);
+        }
+      }
+      for(const assignment of r.assignments){
+        const record=stats(assignment.guard);
+        if(assignment.review){
+          record.completed++;
+          if(assignment.review.arrival==='On time')record.onTime++;
+          if(assignment.review.report==='Accepted')record.accepted++;
+        }
+        if(r.clientFeedback){
+          const scores=record.ratings.get(r.site)||[];
+          scores.push(r.clientFeedback.rating);
+          record.ratings.set(r.site,scores);
+        }
+      }
     }
     attendanceCache.set(data,index);
   }
   const recorded=index.get(g.id);
   const onTime=g.onTime+(recorded?.onTime||0),completed=g.completed+(recorded?.completed||0);
-  return {onTime,completed,rate:onTime/completed};
+  const rate=onTime/completed;
+  const reports=(g.reportRecord.accepted+(recorded?.accepted||0))/(g.reportRecord.reviewed+(recorded?.completed||0));
+  const cancellations=g.priorCancellations+(recorded?.cancelled||0);
+  const showUp=completed/(completed+cancellations);
+  const scores=recorded?.ratings.get(siteId)||[];
+  const feedback=scores.length?scores.reduce((sum,rating)=>sum+rating,0)/scores.length:null;
+  const base=(rate*.4+reports*.25+showUp*.2)/.85;
+  const feedbackWeight=.15*Math.min(scores.length/3,1);
+  const fitShifts=[...(recorded?.fit.get(siteId)?.values()||[])];
+  const fitScores=fitShifts.map(items=>items.reduce((total,value)=>total+value,0)/items.length);
+  const fitAverage=fitScores.length?fitScores.reduce((total,value)=>total+value,0)/fitScores.length:null;
+  const fitAdjustment=fitAverage===null?0:(fitAverage-.5)*16*Math.min(fitScores.length/3,1);
+  const score=Math.min(100,Math.max(0,(base*(1-feedbackWeight)+(feedback===null?0:(feedback-1)/4)*feedbackWeight)*100+fitAdjustment));
+  return {onTime,completed,rate,reports,cancellations,feedback,feedbackCount:scores.length,fitCount:fitScores.length,fitAdjustment,score};
+
 }
-const sortedGuards=(r)=>[...guards].sort((a,b)=>r.rush?travelMinutes(a,r)-travelMinutes(b,r)||attendance(b).rate-attendance(a).rate:attendance(b).rate-attendance(a).rate||travelMinutes(a,r)-travelMinutes(b,r));
+const sortedGuards=r=>[...guards].sort((a,b)=>attendance(b,r.site).score-attendance(a,r.site).score||travelMinutes(a,r)-travelMinutes(b,r)||a.id-b.id);
 const audit=(message)=>data.log.unshift({at:data.now,message});
 const offerFor=(r,g)=>r.offers[g.id];
 const waiting=(r)=>Object.values(r.offers).filter(o=>o.status==='Volunteered').length;
@@ -252,13 +356,19 @@ function preferenceMatches(g,r,projected) {
 
 function insist(condition,message) {if(!condition) throw new Error(message);}
 
-function volunteer(r,g) {
+function volunteer(r,g,arrivalMinutes) {
   const existing=offerFor(r,g);
-  if(existing?.status==='Volunteered') return 'Your response is already awaiting approval.';
-  insist(!existing||activeOffer(existing),'The offer expired. Check the open shift list.');
+  const updating=existing?.status==='Volunteered';
+  if(updating&&!Number.isFinite(arrivalMinutes))return 'Your response is already awaiting approval.';
+  insist(!existing||updating||activeOffer(existing),'The offer expired. Check the open shift list.');
+  if(updating)r.offers[g.id]={...existing,at:data.now,arrivalAt:data.now+arrivalMinutes*minute};
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
-  r.offers[g.id]={...existing,status:'Volunteered',at:data.now};
+  const arrivalAt=Number.isFinite(arrivalMinutes)?data.now+arrivalMinutes*minute:null;
+  const needsEta=r.offers[g.id]?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute;
+  insist(!r.rush||!needsEta||arrivalAt!==null,'Confirm your travel time before volunteering.');
+  insist(arrivalAt===null||arrivalAt<=r.start,'This arrival time misses the shift start.');
+  r.offers[g.id]={...existing,status:'Volunteered',at:data.now,arrivalAt};
   audit(`${g.name} volunteered for ${siteBy(r.site).name}.`);
   return 'Response sent. The shift appears on your schedule after administrator approval.';
 }
@@ -273,11 +383,41 @@ function recordEvent(r,status,guard){
 function autoWave(r){
   if(r.rush&&open(r)>0&&!isPast(r)&&availableForWave(r).length)sendWave(r);
 }
-function assign(r,g) {
+function chooseBackup(r,guardId,post){
+  const g=guardBy(guardId);
+  insist(g&&!isPast(r)&&r.need>0,'Choose a guard for an upcoming shift.');
+  insist(!r.backup||!['Invited','Ready'].includes(r.backup.status),'Release the existing standby first.');
+  insist(['General','Supervisor'].includes(post),'Choose a standby post.');
+  insist(post==='General'||r.supervisors&&g.tier===2,'A qualified supervisor and supervisor post are required.');
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  r.backup={guard:g.id,post,status:'Invited',at:data.now};
+  recordEvent(r,'Standby invited',g.id);
+  return 'Standby invitation listed for the guard.';
+}
+
+function activateBackup(r){
+  const backup=r.backup;
+  insist(backup?.status==='Ready'&&open(r)>0,'An accepted standby and an open post are required.');
+  insist(backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r),'The open post does not match the standby role.');
+  const g=guardBy(backup.guard);
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  insist(travelMinutes(g,r)*minute<=r.start-data.now,'Standby travel estimate misses this start. Contact the guard or move the recovery start.');
+  r.assignments.push({guard:g.id,post:backup.post,at:data.now});
+  backup.status='Activated';
+  if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
+  recordEvent(r,'Standby approved',g.id);
+  audit(g.name+' activated from standby at '+siteBy(r.site).name+'.');
+  return 'Standby guard approved for the shift.';
+}
+
+function assign(r,g,post=g.tier===2&&gap(r)?'Supervisor':'General') {
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
   insist(offerFor(r,g)?.status==='Volunteered','This guard has not volunteered.');
-  r.assignments.push({guard:g.id,post:g.tier===2&&gap(r)?'Supervisor':'General',at:data.now});
+  insist(post==='Supervisor'?g.tier===2&&gap(r)>0:open(r)>gap(r),'This guard cannot fill the proposed post.');
+  r.assignments.push({guard:g.id,post,at:data.now});
   offerFor(r,g).status='Approved';recordEvent(r,'Approved',g.id);
   if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
   audit(`${g.name} approved and notified for ${siteBy(r.site).name}.`);
@@ -300,15 +440,91 @@ function cancelAssignment(r,g,reason='Guard cancelled') {
   audit(`${g.name} ${reason.toLowerCase()}. A position reopened at ${siteBy(r.site).name}.`);
 }
 
-function sendWave(r) {
+function assignedSupervisor(r,id){
+  return Boolean(r?.assignments.some(a=>a.guard===id&&a.post==='Supervisor')&&guardBy(id)?.tier===2);
+}
+
+function attendanceWindow(r,now){
+  return r&&now>=r.start-15*minute&&now<r.end;
+}
+
+function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}){
+  const next=structuredClone(snapshot);
+  const r=next.requests.find(request=>request.id===requestId);
+  insist(attendanceWindow(r,now),'Check-in is closed for this shift.');
+  insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
+  const assignment=r.assignments.find(a=>a.guard===guard);
+  insist(assignment,'You are not assigned to this shift.');
+  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
+  (r.history ||= []).push({at:now,status:'QR and location checked',guard});
+  versionRequests(snapshot,next);
+  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+}
+
+const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];
+
+function supervisorReview(r,reviewer,fields){
+  insist(assignedSupervisor(r,reviewer)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day,'Only the assigned supervisor can review this crew.');
+  const guard=Number(fields.guard);
+  insist(guard!==reviewer&&guardBy(guard)&&(r.assignments.some(a=>a.guard===guard)||r.offers[guard]?.status==='Volunteered'),'Select an assigned or volunteered guard from this shift.');
+  const verdict=fields.verdict;
+  insist(['Good fit','Needs coaching','Needs review'].includes(verdict)&&fitSignals.includes(fields.signal),'Choose a fit assessment and observed skill.');
+  const note=String(fields.note||'').trim().slice(0,300);
+  insist(note,'Describe what you observed.');
+  const reviews=(r.fitReviews||[]).filter(entry=>entry.guard!==guard||entry.reviewer!==reviewer);
+  r.fitReviews=[...reviews,{guard,reviewer,verdict,signal:fields.signal,note,at:data.now}];
+  attendanceCache.delete(data);
+  recordEvent(r,'Supervisor fit review saved',guard);
+  return 'Supervisor feedback saved for dispatch.';
+}
+function checkIn(r,id,source){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&data.now>=r.start-15*minute&&data.now<r.end,'Check-in opens 15 minutes before the shift and closes at shift end.');
+  if(assignment.checkIn)return 'Arrival already recorded.';
+  assignment.checkIn={at:data.now,source,method:source==='Guard'?'self-reported':'dispatcher'};
+  recordEvent(r,'Checked in',id);
+  return 'Arrival recorded.';
+}
+
+function recoverNoShow(r,id){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&!assignment.checkIn&&data.now>=r.start&&r.end>data.now,'Choose an unarrived guard on a shift in progress.');
+  r.assignments=r.assignments.filter(a=>a!==assignment);
+  (r.noShows ||= []).push({...assignment,reportedAt:data.now,reportedBy:view.contact});
+  recordEvent(r,'No-show reported',id);
+  if(r.end-data.now<=5*minute)return 'No-show recorded. Less than five minutes remain.';
+  const lead=Math.min(30*minute,Math.floor((r.end-data.now)/2));
+  const recovery=newRequest(data.next++,r.site,data.now+lead,r.end-data.now-lead,1,r.tier,true,r.notes);
+  Object.assign(recovery,{recoveryOf:r.id,supervisors:Number(assignment.post==='Supervisor'),dress:r.dress,force:r.force,vehicle:r.vehicle,cancelledGuards:[id]});
+  if(r.backup?.status==='Ready'&&r.backup.post===assignment.post){
+    recovery.backup={...r.backup};
+    r.backup.status='Released';
+    const eta=travelMinutes(guardBy(recovery.backup.guard),recovery);
+    if(eta*minute>lead)recovery.backup.status='Invited';
+  }
+  data.requests.push(recovery);
+  recordEvent(recovery,'Recovery opened',id);
+  autoWave(recovery);
+  openRequest(recovery);
+  return 'No-show recorded. A replacement request is open for the remaining shift.';
+}
+
+function sendWave(r,broadcast=false) {
   const pool=availableForWave(r);
-  const specialists=pool.filter(g=>g.tier===2).slice(0,gap(r)*2);
-  const ranked=[...specialists,...pool.filter(g=>!specialists.includes(g))];
+  const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-data.now)/minute);
+  const general=r.rush&&viable.length?[...viable,...pool.filter(g=>!viable.includes(g))]:pool;
+  const specialists=general.filter(g=>g.tier===2).slice(0,gap(r)*2);
+  const ranked=[...specialists,...general.filter(g=>!specialists.includes(g))];
   insist(pool.length,'No new eligible guards. Review the exclusions and escalate if needed.');
-  const expires=Math.min(r.start,data.now+(r.rush?5:60)*minute);
-  const invited=ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
-  const replyDeadline=r.rush?Date.now()+expires-data.now:null;
-  for(const g of invited) r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline};
+  const invited=broadcast===true?ranked:ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
+  for(const g of invited){
+    const departure=r.start-(travelMinutes(g,r)+10)*minute;
+    const verifyArrival=r.rush&&departure<=data.now;
+    const expires=Math.min(r.start,r.rush&&!verifyArrival?departure:Infinity,data.now+(r.rush?5:60)*minute);
+    r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline:r.rush?expires:null,verifyArrival};
+  }
   r.alertCount+=1;recordEvent(r,'Seeking cover');
   audit(`Offer wave ${r.alertCount} sent to ${invited.length} eligible guards.`);
   return `${invited.length} offers sent. Responses will appear in this request.`;
@@ -364,7 +580,12 @@ function openRequest(r) {
 }
 
 const adminActions={
-  wave:sendWave,
+  wave:r=>sendWave(r),
+  broadcast:r=>sendWave(r,true),
+  'activate-backup':activateBackup,
+  'no-show':(r,_,id)=>recoverNoShow(r,Number(id)),
+  'verify-arrival':(r,_,id)=>checkIn(r,Number(id),view.contact),
+  'release-backup':r=>{insist(r.backup?.status==='Ready'||r.backup?.status==='Invited','No active standby.');if(r.offers[r.backup.guard]?.status==='Standby')delete r.offers[r.backup.guard];r.backup.status='Released';recordEvent(r,'Standby released',r.backup.guard);return 'Standby released.';},
   escalate:r=>{
     insist(open(r)>0,'This request is already staffed.');
     r.escalated=true;
@@ -380,6 +601,21 @@ const adminActions={
 };
 
 const guardActions={
+  'standby-accept':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&b.status==='Invited','Standby invitation unavailable.');
+    const failures=eligibility(guardBy(view.guard),r,{forSwap:true});
+    insist(!failures.length,failures.join(' · '));
+    if(offerFor(r,guardBy(view.guard)))r.offers[view.guard].status='Standby';
+    b.status='Ready';recordEvent(r,'Standby accepted',view.guard);return 'You are on standby. Wait for dispatch before travelling.';
+  },
+  'standby-decline':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&['Invited','Ready'].includes(b.status)&&!isPast(r),'Standby invitation unavailable.');
+    if(r.offers[view.guard]?.status==='Standby')delete r.offers[view.guard];
+    b.status='Declined';recordEvent(r,'Standby declined',view.guard);return 'Standby declined.';
+  },
+  'check-in':r=>checkIn(r,view.guard,'Guard'),
   ack:r=>{const a=r.assignments.find(a=>a.guard===view.guard);insist(a&&r.end>data.now,'Current assignment required.');a.ack=data.now;audit(guardBy(view.guard).name+' acknowledged the site brief.');return 'Acknowledgment recorded.';},
   pool:r=>{insist(!isPast(r)&&r.assignments.some(a=>a.guard===view.guard),'Upcoming assignment required.');insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target:null,status:'Pending',accepted:false});recordEvent(r,'Swap requested',view.guard);audit('Swap opened to eligible peers.');return 'Pool open. Your assignment stays active until approval.';},
   claim:(_,id)=>{
@@ -391,10 +627,12 @@ const guardActions={
     return 'Claim sent for approval.';
   },
 
-  volunteer:(r)=>{
+  volunteer:(r,_,extra)=>{
     const g=guardBy(view.guard);
-    insist(!r.rush||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
-    return volunteer(r,g);
+    insist(!r.rush||offerFor(r,g)?.status==='Volunteered'||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
+    const estimate=extra===''||extra===undefined?null:Number(extra);
+    insist(estimate===null||Number.isFinite(estimate)&&estimate>=0&&estimate<=180,'Enter travel time between 0 and 180 minutes.');
+    return volunteer(r,g,estimate);
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
@@ -465,7 +703,7 @@ function savePreferences(fields) {
   const {days,blocks:preferred,maxHours,rush}=fields;
   insist(Array.isArray(days)&&days.every(day=>weekdays.includes(day))&&Array.isArray(preferred)&&preferred.every(block=>blocks.includes(block)),'Choose valid working days and shift blocks.');
   insist(Number.isFinite(maxHours)&&maxHours>=1&&maxHours<=168&&typeof rush==='boolean','Choose a weekly hours target from 1 to 168.');
-  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush};
+  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush,standby:fields.standby??preferencesFor(view.guard).standby??false};
   return 'Working preferences saved.';
 }
 
@@ -476,7 +714,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -487,13 +725,21 @@ function project(snapshot,account) {
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
+    const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
+    const crew=supervisory?[...new Set([...r.assignments.map(a=>a.guard),...Object.keys(r.offers).filter(id=>r.offers[id].status==='Volunteered').map(Number)])].filter(id=>id!==g.id).map(id=>{
+      const person=guardBy(id);
+      const assigned=r.assignments.find(a=>a.guard===id);
+      return {id,name:person.name,tier:person.tier,post:assigned?.post,checkedIn:assigned?.checkIn?.method||null,review:r.fitReviews?.find(item=>item.guard===id&&item.reviewer===g.id)||null};
+    }):null;
     const pendingSwap=data.swaps.some(s=>s.shift===r.id&&s.guard===g.id&&s.status==='Pending');
-    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer)continue;
+    const backup=r.backup?.guard===g.id&&!isPast(r)&&['Invited','Ready'].includes(r.backup.status)?{status:r.backup.status,post:r.backup.post}:null;
+    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer&&!backup&&!supervisory)continue;
     const {area,uniform,name,notes}=siteBy(r.site);
-    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress}:{area,uniform,dress:r.dress};
+    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -509,8 +755,113 @@ function project(snapshot,account) {
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
+const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+
+function canApplyCommand(snapshot,command,revision){
+  if(command.revision===revision)return true;
+  const r=snapshot.requests.find(request=>request.id===Number(command.id));
+  return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
+}
+
+function versionRequests(previous,next){
+  const prior=new Map(previous.requests.map(r=>[r.id,r]));
+  for(const r of next.requests){
+    const old=prior.get(r.id);
+    if(old&&JSON.stringify(old)!==JSON.stringify(r))r.version=(old.version||0)+1;
+    else if(!old)r.version=0;
+  }
+}
+
+function tickDispatch(snapshot,now=Date.now(),owner='Duty dispatcher'){
+  data=migrate(structuredClone(snapshot));
+  data.now=now;
+  let changed=false;
+  for(const r of data.requests){
+    if(r.end<=now)continue;
+    if(r.start<=now){
+      if(r.assignments.some(a=>!a.checkIn)&&!r.arrivalFollowUp&&r.start+5*minute<=now){
+        r.arrivalFollowUp=now;
+        r.arrivalFollowUpOwner=owner;
+        recordEvent(r,'Arrival not verified');
+        changed=true;
+      }
+      continue;
+    }
+    if(!r.backup&&r.supervisors===1&&r.start-now<=2*hour){
+      const candidate=sortedGuards(r).find(g=>g.tier===2&&preferencesFor(g.id).standby&&travelMinutes(g,r)+10<(r.start-now)/minute&&!eligibility(g,r,{forSwap:true}).length);
+      if(candidate){chooseBackup(r,candidate.id,'Supervisor');changed=true;}
+    }
+    if(!r.rush||!open(r)||r.followUp)continue;
+    const active=Object.values(r.offers).some(activeOffer);
+    const replies=guards.filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r).length);
+    const ready=replies.length>0;
+    const earliestDecision=Math.min(...replies.map(g=>{
+      const offer=offerFor(r,g);
+      const travel=offer.arrivalAt===null||offer.arrivalAt===undefined?travelMinutes(g,r):(offer.arrivalAt-offer.at)/minute;
+      return r.start-(travel+10)*minute;
+    }));
+    const pool=availableForWave(r);
+    const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-now)/minute);
+    if(!active&&!ready&&viable.length){
+      sendWave(r);changed=true;continue;
+    }
+    const urgentReview=earliestDecision<=now||r.start-now<=10*minute||!active&&!ready&&!viable.length;
+    const standbyReady=r.backup?.status==='Ready'&&(r.backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r));
+    if((urgentReview||standbyReady)&&!r.escalated){
+      r.escalated=true;
+      r.followUp={owner,at:now,due:now,automatic:true};
+      recordEvent(r,standbyReady?'Review standby for vacancy':'Manual follow-up due');
+      changed=true;
+    }
+  }
+  if(!changed)return null;
+  versionRequests(snapshot,data);
+  return data;
+}
+
+function coveragePlan(){
+  const slots=[];
+  for(const r of data.requests){
+    if(isPast(r)||r.start-data.now>4*hour||!open(r))continue;
+    const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r,{forSwap:true}).length);
+    for(const post of ['Supervisor','General']){
+      const total=post==='Supervisor'?gap(r):open(r)-gap(r);
+      if(total<=0)continue;
+      const b=r.backup;
+      const standby=b?.status==='Ready'&&b.post===post&&travelMinutes(guardBy(b.guard),r)*minute<=r.start-data.now&&!eligibility(guardBy(b.guard),r,{forSwap:true}).length?guardBy(b.guard):null;
+      const candidates=[...(standby?[standby]:[]),...volunteers.filter(g=>post!=='Supervisor'||g.tier===2)];
+      if(candidates.length)for(let index=0;index<Math.min(total,24);index++)slots.push({r,post,candidates});
+    }
+  }
+  slots.sort((a,b)=>Number(b.post==='Supervisor')-Number(a.post==='Supervisor')||a.candidates.length-b.candidates.length||a.r.start-b.r.start);
+  const choices=[];
+  for(const slot of slots){
+    const {r,post,candidates}=slot;
+    const g=candidates.find(candidate=>!choices.some(choice=>{
+      if(choice.guard!==candidate.id)return false;
+      const other=byId(choice.request);
+      const spacing=Math.max(other.start-r.end,r.start-other.end);
+      return overlaps(r,other)||spacing<(travelMinutes(candidate,r)+10)*minute;
+    }));
+    if(g)choices.push({request:r.id,guard:g.id,post,reason:candidates.length===1?'Only eligible '+post.toLowerCase():post==='Supervisor'?'Supervisor vacancy takes priority':'Best eligible remaining volunteer'});
+    if(choices.length>=24)break;
+  }
+  return choices;
+}
+
+function approveCoveragePlan(expected){
+  const plan=coveragePlan();
+  insist(Array.isArray(expected)&&plan.length&&JSON.stringify(expected)===JSON.stringify(plan.map(({request,guard,post})=>({request,guard,post}))),'The recommendation changed. Review the current plan.');
+  for(const choice of plan){
+    const r=byId(choice.request),g=guardBy(choice.guard);
+    if(r.backup?.guard===g.id&&r.backup.status==='Ready'&&r.backup.post===choice.post)activateBackup(r);
+    else assign(r,g,choice.post);
+  }
+  return plan.length+' assignments approved.';
+}
+
 if(typeof module!=='undefined') module.exports={
-  seed,migrate,project,
+  seed,migrate,project,tickDispatch,canApplyCommand,assignedSupervisor,attendanceWindow,recordQrArrival,
   execute(snapshot, command, account) {
     data=migrate(structuredClone(snapshot)); data.now=Date.now();
     const {role,client,guard,name:contact}=account;
@@ -519,7 +870,19 @@ if(typeof module!=='undefined') module.exports={
     const form=new Map(Object.entries(fields));
     const shift=byId(id);
     let message;
-    if(role==='admin'&&action==='adjust-assignment'){
+    if(role==='guard'&&action==='supervisor-review')message=supervisorReview(shift,guard,fields);
+    else if(role==='admin'&&action==='approve-plan')message=approveCoveragePlan(fields.plan);
+    else if(role==='client'&&action==='feedback'){
+      insist(shift&&siteBy(shift.site).client===client&&shift.end<=data.now&&shift.assignments.length,'Feedback is available after a staffed shift ends.');
+      const rating=Number(fields.rating);
+      insist(Number.isInteger(rating)&&rating>=1&&rating<=5&&!shift.clientFeedback,'Choose a rating from 1 to 5. Each shift accepts one response.');
+      shift.clientFeedback={rating,note:String(fields.note||'').slice(0,300),at:data.now};
+      recordEvent(shift,'Client feedback received');
+      message='Feedback recorded.';
+    }else if(role==='admin'&&action==='choose-backup'){
+      insist(shift,'Shift unavailable.');
+      message=chooseBackup(shift,Number(fields.guard),fields.post);
+    }else if(role==='admin'&&action==='adjust-assignment'){
       const g=guardBy(extra);
       const assigned=shift?.assignments.find(a=>a.guard===g?.id);
       insist(assigned&&!isPast(shift),'Upcoming assignment required.');
@@ -529,7 +892,9 @@ if(typeof module!=='undefined') module.exports={
       const moved=newRequest(data.next++,shift.site,start,duration,1,shift.tier,start-data.now<=2*hour,shift.notes);
       Object.assign(moved,{dress:shift.dress,force:shift.force,vehicle:shift.vehicle,contact:shift.contact,source:shift.source,supervisors:Number(assigned.post==='Supervisor')});
       shift.assignments=shift.assignments.filter(a=>a!==assigned);
-      shift.need--;shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
+      shift.need--;
+      if(!shift.need&&shift.backup)shift.backup.status='Released';
+      shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
       if(shift.offers[g.id])shift.offers[g.id].status='Rescheduled';
       for(const swap of data.swaps)if(swap.shift===shift.id&&swap.guard===g.id&&swap.status==='Pending')swap.status='Declined';
       recordEvent(shift,'Rescheduled by dispatch',g.id);
@@ -547,6 +912,7 @@ if(typeof module!=='undefined') module.exports={
       insist(typeof fields.note==='string'&&fields.note.trim(),'Enter the review basis.');
       assignment.review={arrival:fields.arrival,report:fields.report,note:String(fields.note||'').slice(0,200),by:contact,at:data.now};
       recordEvent(shift,'Duty review saved',Number(extra));
+      attendanceCache.delete(data);
       message='Duty record saved.';
     }else if(role==='admin'&&action==='call-note'){
       const g=guardBy(extra);
@@ -572,10 +938,11 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }
+    versionRequests(snapshot,data);
     return {state:data,message,selected:view.selected,checked:[...view.checked]};
   }
 };
@@ -604,7 +971,7 @@ module.exports={demoAccounts,demoPassword,loginKey};
 })();
 const standaloneRequest=(()=>{
   const {demoAccounts,demoPassword,loginKey}=offlineBundle.accounts;
-  const {seed,project,execute}=offlineBundle.engine;
+  const {seed,project,execute,canApplyCommand}=offlineBundle.engine;
   const sessionKey='sigma-offline-account';
   let accountId=null, connection;
   try{accountId=Number(sessionStorage.getItem(sessionKey));}catch{}
@@ -648,7 +1015,7 @@ const standaloneRequest=(()=>{
         const board=event.target.result;
         try{
           if(write){
-            if(command.revision!==board.revision||command.account!==user.id){
+            if(command.account!==user.id||!canApplyCommand(board.state,command,board.revision)){
               reply=response(409,{error:'The schedule changed. Review the updated board and try again.'});
               return;
             }
@@ -678,7 +1045,7 @@ let {sites,clients,guards}=typeof module!=='undefined'?require('./catalog.js'):{
 const guardId=id=>Number(id)>0&&Number(id)<=120?3000+Number(id):Number(id);
 const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const blocks=['Morning','Afternoon','Overnight'];
-const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true};
+const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true,standby:false};
 
 function migrate(snapshot) {
   if(snapshot.version===2)return snapshot;
@@ -746,13 +1113,12 @@ function requestCalendar(r){
   const dow=(new Date(inputDate(midnight)+'T12:00Z').getUTCDay()+6)%7;
   const dateAt=i=>new Date(Date.parse(inputDate(midnight)+'T12:00Z')+i*day).toISOString().slice(0,10);
   const monday=localTime(dateAt(-dow),'00:00'),weekEnd=localTime(dateAt(7-dow),'00:00');
-  const bounds=Array.from({length:3},(_,i)=>localTime(dateAt(i),'00:00'));
-  const calendar={monday,weekEnd,bounds};
+  const calendar={monday,weekEnd};
   calendarCache.set(r,calendar);
   return calendar;
 }
 function scheduleCheck(g,r){
-  const {monday,weekEnd,bounds}=requestCalendar(r);
+  const {monday,weekEnd}=requestCalendar(r);
   const duties=data.requests.filter(x=>r.id!==x.id&&x.assignments.some(a=>a.guard===g.id));
   const hours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd)-Math.max(x.start,monday))/hour,0);
   const nextHours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd+7*day)-Math.max(x.start,weekEnd))/hour,0);
@@ -761,14 +1127,41 @@ function scheduleCheck(g,r){
   const crossesWeek=r.end>weekEnd;
   const projected=crossesWeek?Math.max(firstWeek,secondWeek):firstWeek;
   const overtime=Math.max(0,firstWeek-44)-Math.max(0,hours-44)+(crossesWeek?Math.max(0,secondWeek-44)-Math.max(0,nextHours-44):0);
-  let rest=duties.some(x=>{const spacing=Math.max(x.start-r.end,r.start-x.end);return spacing>=0&&spacing<8*hour&&x.end-x.start+r.end-r.start>13*hour;});
-  for(let d=0;d<2;d++){const start=bounds[d],end=bounds[d+1];if(r.end<=start)break;
-    let cursor=start,longest=0;
-    for(const x of [...duties,r].filter(x=>x.start<end&&x.end>start).sort((a,b)=>a.start-b.start)){longest=Math.max(longest,x.start-cursor);cursor=Math.max(cursor,Math.min(end,x.end));}
-    rest ||= Math.max(longest,end-cursor)<11*hour;
-  }
+  const shifts=[...duties,r].sort((a,b)=>a.start-b.start);
+  const rest=insufficientRest(shifts,r);
   return {rest,projected,ot:overtime,review:(g.id-3000)%23===0};
 }
+function insufficientRest(shifts,proposed){
+  let cycleStart=shifts[0].start;
+  let cycle=[];
+  const dailyRestFailed=()=>{
+    if(!cycle.includes(proposed))return false;
+    for(let start=cycleStart;start<cycle.at(-1).end;start+=day){
+      const end=start+day;
+      let cursor=start,longest=0;
+      for(const shift of cycle){
+        if(shift.end<=start||shift.start>=end)continue;
+        longest=Math.max(longest,shift.start-cursor);
+        cursor=Math.max(cursor,Math.min(end,shift.end));
+      }
+      if(Math.max(longest,end-cursor)<11*hour)return true;
+    }
+    return false;
+  };
+  for(const shift of shifts){
+    const previous=cycle.at(-1);
+    if(previous){
+      const gap=shift.start-previous.end;
+      if(gap>=day){
+        if(dailyRestFailed())return true;
+        cycleStart=shift.start;cycle=[];
+      }else if((previous===proposed||shift===proposed)&&gap>=0&&gap<8*hour&&previous.end-previous.start+shift.end-shift.start>13*hour)return true;
+    }
+    cycle.push(shift);
+  }
+  return dailyRestFailed();
+}
+
 function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
@@ -787,10 +1180,17 @@ function eligibility(g,r,{forSwap=false}={}) {
   if(!g.available) reasons.push('Marked unavailable');
   if(data.leaves.some(l=>l.guard===g.id&&l.status==='Approved'&&overlaps(l,r))) reasons.push('Approved leave');
   if(r.cancelledGuard===g.id||r.cancelledGuards?.includes(g.id)) reasons.push('Cancelled this shift');
+  if(!forSwap&&r.backup?.guard===g.id&&r.backup.status==='Ready')reasons.push('Reserved as standby');
   if(r.assignments.some(a=>a.guard===g.id)) reasons.push('Already assigned here');
-  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&other.assignments.some(a=>a.guard===g.id))) reasons.push('Overlapping assignment');
+  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&(other.assignments.some(a=>a.guard===g.id)||other.backup?.guard===g.id&&other.backup.status==='Ready'))) reasons.push('Overlapping assignment');
   if(remaining<=0) reasons.push('Shift already started');
-  else if(travelMinutes(g,r)>remaining) reasons.push('Estimated arrival is too late');
+  else {
+    const response=r.offers[g.id];
+    if(r.rush&&response?.status==='Volunteered'){
+      const travel=Number.isFinite(response.arrivalAt)?response.arrivalAt-response.at:travelMinutes(g,r)*minute;
+      if(data.now+travel>r.start)reasons.push('Departure window passed. Ask the guard for a current ETA.');
+    }
+  }
   if(open(r)<=0&&!forSwap) reasons.push('All positions filled');
   return reasons;
 }
@@ -801,24 +1201,62 @@ function travelMinutes(g,r){
   return Math.max(5,g.eta+areaIndex*(3+(g.id%8)));
 }
 const attendanceCache=new WeakMap();
-function attendance(g){
+function attendance(g,siteId){
   let index=attendanceCache.get(data);
   if(!index){
     index=new Map();
-    for(const r of data.requests)for(const a of r.assignments||[]){
-      if(!a.review)continue;
-      const record=index.get(a.guard)||{onTime:0,completed:0};
-      record.completed++;
-      if(a.review.arrival==='On time')record.onTime++;
-      index.set(a.guard,record);
+    const stats=id=>{
+      if(!index.has(id))index.set(id,{onTime:0,completed:0,accepted:0,cancelled:0,ratings:new Map(),fit:new Map()});
+      return index.get(id);
+    };
+    for(const r of data.requests){
+      for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
+      if(r.end<=data.now){
+        for(const review of r.fitReviews||[]){
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          const fit=stats(review.guard).fit;
+          const previous=fit.get(r.site)||new Map();
+          const scores=previous.get(r.id)||[];
+          scores.push(review.verdict==='Good fit'?1:review.verdict==='Needs coaching'?0.5:0);
+          previous.set(r.id,scores);
+          fit.set(r.site,previous);
+        }
+      }
+      for(const assignment of r.assignments){
+        const record=stats(assignment.guard);
+        if(assignment.review){
+          record.completed++;
+          if(assignment.review.arrival==='On time')record.onTime++;
+          if(assignment.review.report==='Accepted')record.accepted++;
+        }
+        if(r.clientFeedback){
+          const scores=record.ratings.get(r.site)||[];
+          scores.push(r.clientFeedback.rating);
+          record.ratings.set(r.site,scores);
+        }
+      }
     }
     attendanceCache.set(data,index);
   }
   const recorded=index.get(g.id);
   const onTime=g.onTime+(recorded?.onTime||0),completed=g.completed+(recorded?.completed||0);
-  return {onTime,completed,rate:onTime/completed};
+  const rate=onTime/completed;
+  const reports=(g.reportRecord.accepted+(recorded?.accepted||0))/(g.reportRecord.reviewed+(recorded?.completed||0));
+  const cancellations=g.priorCancellations+(recorded?.cancelled||0);
+  const showUp=completed/(completed+cancellations);
+  const scores=recorded?.ratings.get(siteId)||[];
+  const feedback=scores.length?scores.reduce((sum,rating)=>sum+rating,0)/scores.length:null;
+  const base=(rate*.4+reports*.25+showUp*.2)/.85;
+  const feedbackWeight=.15*Math.min(scores.length/3,1);
+  const fitShifts=[...(recorded?.fit.get(siteId)?.values()||[])];
+  const fitScores=fitShifts.map(items=>items.reduce((total,value)=>total+value,0)/items.length);
+  const fitAverage=fitScores.length?fitScores.reduce((total,value)=>total+value,0)/fitScores.length:null;
+  const fitAdjustment=fitAverage===null?0:(fitAverage-.5)*16*Math.min(fitScores.length/3,1);
+  const score=Math.min(100,Math.max(0,(base*(1-feedbackWeight)+(feedback===null?0:(feedback-1)/4)*feedbackWeight)*100+fitAdjustment));
+  return {onTime,completed,rate,reports,cancellations,feedback,feedbackCount:scores.length,fitCount:fitScores.length,fitAdjustment,score};
+
 }
-const sortedGuards=(r)=>[...guards].sort((a,b)=>r.rush?travelMinutes(a,r)-travelMinutes(b,r)||attendance(b).rate-attendance(a).rate:attendance(b).rate-attendance(a).rate||travelMinutes(a,r)-travelMinutes(b,r));
+const sortedGuards=r=>[...guards].sort((a,b)=>attendance(b,r.site).score-attendance(a,r.site).score||travelMinutes(a,r)-travelMinutes(b,r)||a.id-b.id);
 const audit=(message)=>data.log.unshift({at:data.now,message});
 const offerFor=(r,g)=>r.offers[g.id];
 const waiting=(r)=>Object.values(r.offers).filter(o=>o.status==='Volunteered').length;
@@ -836,13 +1274,19 @@ function preferenceMatches(g,r,projected) {
 
 function insist(condition,message) {if(!condition) throw new Error(message);}
 
-function volunteer(r,g) {
+function volunteer(r,g,arrivalMinutes) {
   const existing=offerFor(r,g);
-  if(existing?.status==='Volunteered') return 'Your response is already awaiting approval.';
-  insist(!existing||activeOffer(existing),'The offer expired. Check the open shift list.');
+  const updating=existing?.status==='Volunteered';
+  if(updating&&!Number.isFinite(arrivalMinutes))return 'Your response is already awaiting approval.';
+  insist(!existing||updating||activeOffer(existing),'The offer expired. Check the open shift list.');
+  if(updating)r.offers[g.id]={...existing,at:data.now,arrivalAt:data.now+arrivalMinutes*minute};
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
-  r.offers[g.id]={...existing,status:'Volunteered',at:data.now};
+  const arrivalAt=Number.isFinite(arrivalMinutes)?data.now+arrivalMinutes*minute:null;
+  const needsEta=r.offers[g.id]?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute;
+  insist(!r.rush||!needsEta||arrivalAt!==null,'Confirm your travel time before volunteering.');
+  insist(arrivalAt===null||arrivalAt<=r.start,'This arrival time misses the shift start.');
+  r.offers[g.id]={...existing,status:'Volunteered',at:data.now,arrivalAt};
   audit(`${g.name} volunteered for ${siteBy(r.site).name}.`);
   return 'Response sent. The shift appears on your schedule after administrator approval.';
 }
@@ -857,11 +1301,41 @@ function recordEvent(r,status,guard){
 function autoWave(r){
   if(r.rush&&open(r)>0&&!isPast(r)&&availableForWave(r).length)sendWave(r);
 }
-function assign(r,g) {
+function chooseBackup(r,guardId,post){
+  const g=guardBy(guardId);
+  insist(g&&!isPast(r)&&r.need>0,'Choose a guard for an upcoming shift.');
+  insist(!r.backup||!['Invited','Ready'].includes(r.backup.status),'Release the existing standby first.');
+  insist(['General','Supervisor'].includes(post),'Choose a standby post.');
+  insist(post==='General'||r.supervisors&&g.tier===2,'A qualified supervisor and supervisor post are required.');
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  r.backup={guard:g.id,post,status:'Invited',at:data.now};
+  recordEvent(r,'Standby invited',g.id);
+  return 'Standby invitation listed for the guard.';
+}
+
+function activateBackup(r){
+  const backup=r.backup;
+  insist(backup?.status==='Ready'&&open(r)>0,'An accepted standby and an open post are required.');
+  insist(backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r),'The open post does not match the standby role.');
+  const g=guardBy(backup.guard);
+  const failures=eligibility(g,r,{forSwap:true});
+  insist(!failures.length,failures.join(' · '));
+  insist(travelMinutes(g,r)*minute<=r.start-data.now,'Standby travel estimate misses this start. Contact the guard or move the recovery start.');
+  r.assignments.push({guard:g.id,post:backup.post,at:data.now});
+  backup.status='Activated';
+  if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
+  recordEvent(r,'Standby approved',g.id);
+  audit(g.name+' activated from standby at '+siteBy(r.site).name+'.');
+  return 'Standby guard approved for the shift.';
+}
+
+function assign(r,g,post=g.tier===2&&gap(r)?'Supervisor':'General') {
   const failures=eligibility(g,r);
   insist(!failures.length,failures.join(' · '));
   insist(offerFor(r,g)?.status==='Volunteered','This guard has not volunteered.');
-  r.assignments.push({guard:g.id,post:g.tier===2&&gap(r)?'Supervisor':'General',at:data.now});
+  insist(post==='Supervisor'?g.tier===2&&gap(r)>0:open(r)>gap(r),'This guard cannot fill the proposed post.');
+  r.assignments.push({guard:g.id,post,at:data.now});
   offerFor(r,g).status='Approved';recordEvent(r,'Approved',g.id);
   if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
   audit(`${g.name} approved and notified for ${siteBy(r.site).name}.`);
@@ -884,15 +1358,91 @@ function cancelAssignment(r,g,reason='Guard cancelled') {
   audit(`${g.name} ${reason.toLowerCase()}. A position reopened at ${siteBy(r.site).name}.`);
 }
 
-function sendWave(r) {
+function assignedSupervisor(r,id){
+  return Boolean(r?.assignments.some(a=>a.guard===id&&a.post==='Supervisor')&&guardBy(id)?.tier===2);
+}
+
+function attendanceWindow(r,now){
+  return r&&now>=r.start-15*minute&&now<r.end;
+}
+
+function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}){
+  const next=structuredClone(snapshot);
+  const r=next.requests.find(request=>request.id===requestId);
+  insist(attendanceWindow(r,now),'Check-in is closed for this shift.');
+  insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
+  const assignment=r.assignments.find(a=>a.guard===guard);
+  insist(assignment,'You are not assigned to this shift.');
+  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
+  (r.history ||= []).push({at:now,status:'QR and location checked',guard});
+  versionRequests(snapshot,next);
+  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+}
+
+const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];
+
+function supervisorReview(r,reviewer,fields){
+  insist(assignedSupervisor(r,reviewer)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day,'Only the assigned supervisor can review this crew.');
+  const guard=Number(fields.guard);
+  insist(guard!==reviewer&&guardBy(guard)&&(r.assignments.some(a=>a.guard===guard)||r.offers[guard]?.status==='Volunteered'),'Select an assigned or volunteered guard from this shift.');
+  const verdict=fields.verdict;
+  insist(['Good fit','Needs coaching','Needs review'].includes(verdict)&&fitSignals.includes(fields.signal),'Choose a fit assessment and observed skill.');
+  const note=String(fields.note||'').trim().slice(0,300);
+  insist(note,'Describe what you observed.');
+  const reviews=(r.fitReviews||[]).filter(entry=>entry.guard!==guard||entry.reviewer!==reviewer);
+  r.fitReviews=[...reviews,{guard,reviewer,verdict,signal:fields.signal,note,at:data.now}];
+  attendanceCache.delete(data);
+  recordEvent(r,'Supervisor fit review saved',guard);
+  return 'Supervisor feedback saved for dispatch.';
+}
+function checkIn(r,id,source){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&data.now>=r.start-15*minute&&data.now<r.end,'Check-in opens 15 minutes before the shift and closes at shift end.');
+  if(assignment.checkIn)return 'Arrival already recorded.';
+  assignment.checkIn={at:data.now,source,method:source==='Guard'?'self-reported':'dispatcher'};
+  recordEvent(r,'Checked in',id);
+  return 'Arrival recorded.';
+}
+
+function recoverNoShow(r,id){
+  const assignment=r.assignments.find(a=>a.guard===id);
+  insist(assignment&&!assignment.checkIn&&data.now>=r.start&&r.end>data.now,'Choose an unarrived guard on a shift in progress.');
+  r.assignments=r.assignments.filter(a=>a!==assignment);
+  (r.noShows ||= []).push({...assignment,reportedAt:data.now,reportedBy:view.contact});
+  recordEvent(r,'No-show reported',id);
+  if(r.end-data.now<=5*minute)return 'No-show recorded. Less than five minutes remain.';
+  const lead=Math.min(30*minute,Math.floor((r.end-data.now)/2));
+  const recovery=newRequest(data.next++,r.site,data.now+lead,r.end-data.now-lead,1,r.tier,true,r.notes);
+  Object.assign(recovery,{recoveryOf:r.id,supervisors:Number(assignment.post==='Supervisor'),dress:r.dress,force:r.force,vehicle:r.vehicle,cancelledGuards:[id]});
+  if(r.backup?.status==='Ready'&&r.backup.post===assignment.post){
+    recovery.backup={...r.backup};
+    r.backup.status='Released';
+    const eta=travelMinutes(guardBy(recovery.backup.guard),recovery);
+    if(eta*minute>lead)recovery.backup.status='Invited';
+  }
+  data.requests.push(recovery);
+  recordEvent(recovery,'Recovery opened',id);
+  autoWave(recovery);
+  openRequest(recovery);
+  return 'No-show recorded. A replacement request is open for the remaining shift.';
+}
+
+function sendWave(r,broadcast=false) {
   const pool=availableForWave(r);
-  const specialists=pool.filter(g=>g.tier===2).slice(0,gap(r)*2);
-  const ranked=[...specialists,...pool.filter(g=>!specialists.includes(g))];
+  const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-data.now)/minute);
+  const general=r.rush&&viable.length?[...viable,...pool.filter(g=>!viable.includes(g))]:pool;
+  const specialists=general.filter(g=>g.tier===2).slice(0,gap(r)*2);
+  const ranked=[...specialists,...general.filter(g=>!specialists.includes(g))];
   insist(pool.length,'No new eligible guards. Review the exclusions and escalate if needed.');
-  const expires=Math.min(r.start,data.now+(r.rush?5:60)*minute);
-  const invited=ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
-  const replyDeadline=r.rush?Date.now()+expires-data.now:null;
-  for(const g of invited) r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline};
+  const invited=broadcast===true?ranked:ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
+  for(const g of invited){
+    const departure=r.start-(travelMinutes(g,r)+10)*minute;
+    const verifyArrival=r.rush&&departure<=data.now;
+    const expires=Math.min(r.start,r.rush&&!verifyArrival?departure:Infinity,data.now+(r.rush?5:60)*minute);
+    r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline:r.rush?expires:null,verifyArrival};
+  }
   r.alertCount+=1;recordEvent(r,'Seeking cover');
   audit(`Offer wave ${r.alertCount} sent to ${invited.length} eligible guards.`);
   return `${invited.length} offers sent. Responses will appear in this request.`;
@@ -948,7 +1498,12 @@ function openRequest(r) {
 }
 
 const adminActions={
-  wave:sendWave,
+  wave:r=>sendWave(r),
+  broadcast:r=>sendWave(r,true),
+  'activate-backup':activateBackup,
+  'no-show':(r,_,id)=>recoverNoShow(r,Number(id)),
+  'verify-arrival':(r,_,id)=>checkIn(r,Number(id),view.contact),
+  'release-backup':r=>{insist(r.backup?.status==='Ready'||r.backup?.status==='Invited','No active standby.');if(r.offers[r.backup.guard]?.status==='Standby')delete r.offers[r.backup.guard];r.backup.status='Released';recordEvent(r,'Standby released',r.backup.guard);return 'Standby released.';},
   escalate:r=>{
     insist(open(r)>0,'This request is already staffed.');
     r.escalated=true;
@@ -964,6 +1519,21 @@ const adminActions={
 };
 
 const guardActions={
+  'standby-accept':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&b.status==='Invited','Standby invitation unavailable.');
+    const failures=eligibility(guardBy(view.guard),r,{forSwap:true});
+    insist(!failures.length,failures.join(' · '));
+    if(offerFor(r,guardBy(view.guard)))r.offers[view.guard].status='Standby';
+    b.status='Ready';recordEvent(r,'Standby accepted',view.guard);return 'You are on standby. Wait for dispatch before travelling.';
+  },
+  'standby-decline':r=>{
+    const b=r.backup;
+    insist(b?.guard===view.guard&&['Invited','Ready'].includes(b.status)&&!isPast(r),'Standby invitation unavailable.');
+    if(r.offers[view.guard]?.status==='Standby')delete r.offers[view.guard];
+    b.status='Declined';recordEvent(r,'Standby declined',view.guard);return 'Standby declined.';
+  },
+  'check-in':r=>checkIn(r,view.guard,'Guard'),
   ack:r=>{const a=r.assignments.find(a=>a.guard===view.guard);insist(a&&r.end>data.now,'Current assignment required.');a.ack=data.now;audit(guardBy(view.guard).name+' acknowledged the site brief.');return 'Acknowledgment recorded.';},
   pool:r=>{insist(!isPast(r)&&r.assignments.some(a=>a.guard===view.guard),'Upcoming assignment required.');insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target:null,status:'Pending',accepted:false});recordEvent(r,'Swap requested',view.guard);audit('Swap opened to eligible peers.');return 'Pool open. Your assignment stays active until approval.';},
   claim:(_,id)=>{
@@ -975,10 +1545,12 @@ const guardActions={
     return 'Claim sent for approval.';
   },
 
-  volunteer:(r)=>{
+  volunteer:(r,_,extra)=>{
     const g=guardBy(view.guard);
-    insist(!r.rush||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
-    return volunteer(r,g);
+    insist(!r.rush||offerFor(r,g)?.status==='Volunteered'||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
+    const estimate=extra===''||extra===undefined?null:Number(extra);
+    insist(estimate===null||Number.isFinite(estimate)&&estimate>=0&&estimate<=180,'Enter travel time between 0 and 180 minutes.');
+    return volunteer(r,g,estimate);
   },
   decline:(r)=>{
     const g=guardBy(view.guard);
@@ -1049,7 +1621,7 @@ function savePreferences(fields) {
   const {days,blocks:preferred,maxHours,rush}=fields;
   insist(Array.isArray(days)&&days.every(day=>weekdays.includes(day))&&Array.isArray(preferred)&&preferred.every(block=>blocks.includes(block)),'Choose valid working days and shift blocks.');
   insist(Number.isFinite(maxHours)&&maxHours>=1&&maxHours<=168&&typeof rush==='boolean','Choose a weekly hours target from 1 to 168.');
-  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush};
+  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush,standby:fields.standby??preferencesFor(view.guard).standby??false};
   return 'Working preferences saved.';
 }
 
@@ -1060,7 +1632,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -1071,13 +1643,21 @@ function project(snapshot,account) {
     const offer=offerFor(r,g);
     const invited=activeOffer(offer);
     const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const needsArrivalCheck=r.rush&&(offer?.verifyArrival||travelMinutes(g,r)+10>(r.start-data.now)/minute);
     const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
+    const supervisory=assignedSupervisor(r,g.id)&&data.now>=r.start-4*hour&&data.now<=r.end+7*day;
+    const crew=supervisory?[...new Set([...r.assignments.map(a=>a.guard),...Object.keys(r.offers).filter(id=>r.offers[id].status==='Volunteered').map(Number)])].filter(id=>id!==g.id).map(id=>{
+      const person=guardBy(id);
+      const assigned=r.assignments.find(a=>a.guard===id);
+      return {id,name:person.name,tier:person.tier,post:assigned?.post,checkedIn:assigned?.checkIn?.method||null,review:r.fitReviews?.find(item=>item.guard===id&&item.reviewer===g.id)||null};
+    }):null;
     const pendingSwap=data.swaps.some(s=>s.shift===r.id&&s.guard===g.id&&s.status==='Pending');
-    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer)continue;
+    const backup=r.backup?.guard===g.id&&!isPast(r)&&['Invited','Ready'].includes(r.backup.status)?{status:r.backup.status,post:r.backup.post}:null;
+    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer&&!backup&&!supervisory)continue;
     const {area,uniform,name,notes}=siteBy(r.site);
-    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress}:{area,uniform,dress:r.dress};
+    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress,coordinates:siteBy(r.site).coordinates}:{area,uniform,dress:r.dress};
     const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
-    requests.push({id:r.id,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+    requests.push({id:r.id,version:r.version||0,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,crew,supervisory,backup,needsArrivalCheck,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
   }
   const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
     const {start,end,site}=byId(s.shift);
@@ -1093,8 +1673,113 @@ function project(snapshot,account) {
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
+const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+
+function canApplyCommand(snapshot,command,revision){
+  if(command.revision===revision)return true;
+  const r=snapshot.requests.find(request=>request.id===Number(command.id));
+  return requestActions.has(command.action)&&r&&Number.isInteger(command.requestVersion)&&command.requestVersion===(r.version||0);
+}
+
+function versionRequests(previous,next){
+  const prior=new Map(previous.requests.map(r=>[r.id,r]));
+  for(const r of next.requests){
+    const old=prior.get(r.id);
+    if(old&&JSON.stringify(old)!==JSON.stringify(r))r.version=(old.version||0)+1;
+    else if(!old)r.version=0;
+  }
+}
+
+function tickDispatch(snapshot,now=Date.now(),owner='Duty dispatcher'){
+  data=migrate(structuredClone(snapshot));
+  data.now=now;
+  let changed=false;
+  for(const r of data.requests){
+    if(r.end<=now)continue;
+    if(r.start<=now){
+      if(r.assignments.some(a=>!a.checkIn)&&!r.arrivalFollowUp&&r.start+5*minute<=now){
+        r.arrivalFollowUp=now;
+        r.arrivalFollowUpOwner=owner;
+        recordEvent(r,'Arrival not verified');
+        changed=true;
+      }
+      continue;
+    }
+    if(!r.backup&&r.supervisors===1&&r.start-now<=2*hour){
+      const candidate=sortedGuards(r).find(g=>g.tier===2&&preferencesFor(g.id).standby&&travelMinutes(g,r)+10<(r.start-now)/minute&&!eligibility(g,r,{forSwap:true}).length);
+      if(candidate){chooseBackup(r,candidate.id,'Supervisor');changed=true;}
+    }
+    if(!r.rush||!open(r)||r.followUp)continue;
+    const active=Object.values(r.offers).some(activeOffer);
+    const replies=guards.filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r).length);
+    const ready=replies.length>0;
+    const earliestDecision=Math.min(...replies.map(g=>{
+      const offer=offerFor(r,g);
+      const travel=offer.arrivalAt===null||offer.arrivalAt===undefined?travelMinutes(g,r):(offer.arrivalAt-offer.at)/minute;
+      return r.start-(travel+10)*minute;
+    }));
+    const pool=availableForWave(r);
+    const viable=pool.filter(g=>travelMinutes(g,r)+10<(r.start-now)/minute);
+    if(!active&&!ready&&viable.length){
+      sendWave(r);changed=true;continue;
+    }
+    const urgentReview=earliestDecision<=now||r.start-now<=10*minute||!active&&!ready&&!viable.length;
+    const standbyReady=r.backup?.status==='Ready'&&(r.backup.post==='Supervisor'?gap(r)>0:open(r)>gap(r));
+    if((urgentReview||standbyReady)&&!r.escalated){
+      r.escalated=true;
+      r.followUp={owner,at:now,due:now,automatic:true};
+      recordEvent(r,standbyReady?'Review standby for vacancy':'Manual follow-up due');
+      changed=true;
+    }
+  }
+  if(!changed)return null;
+  versionRequests(snapshot,data);
+  return data;
+}
+
+function coveragePlan(){
+  const slots=[];
+  for(const r of data.requests){
+    if(isPast(r)||r.start-data.now>4*hour||!open(r))continue;
+    const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered'&&!eligibility(g,r,{forSwap:true}).length);
+    for(const post of ['Supervisor','General']){
+      const total=post==='Supervisor'?gap(r):open(r)-gap(r);
+      if(total<=0)continue;
+      const b=r.backup;
+      const standby=b?.status==='Ready'&&b.post===post&&travelMinutes(guardBy(b.guard),r)*minute<=r.start-data.now&&!eligibility(guardBy(b.guard),r,{forSwap:true}).length?guardBy(b.guard):null;
+      const candidates=[...(standby?[standby]:[]),...volunteers.filter(g=>post!=='Supervisor'||g.tier===2)];
+      if(candidates.length)for(let index=0;index<Math.min(total,24);index++)slots.push({r,post,candidates});
+    }
+  }
+  slots.sort((a,b)=>Number(b.post==='Supervisor')-Number(a.post==='Supervisor')||a.candidates.length-b.candidates.length||a.r.start-b.r.start);
+  const choices=[];
+  for(const slot of slots){
+    const {r,post,candidates}=slot;
+    const g=candidates.find(candidate=>!choices.some(choice=>{
+      if(choice.guard!==candidate.id)return false;
+      const other=byId(choice.request);
+      const spacing=Math.max(other.start-r.end,r.start-other.end);
+      return overlaps(r,other)||spacing<(travelMinutes(candidate,r)+10)*minute;
+    }));
+    if(g)choices.push({request:r.id,guard:g.id,post,reason:candidates.length===1?'Only eligible '+post.toLowerCase():post==='Supervisor'?'Supervisor vacancy takes priority':'Best eligible remaining volunteer'});
+    if(choices.length>=24)break;
+  }
+  return choices;
+}
+
+function approveCoveragePlan(expected){
+  const plan=coveragePlan();
+  insist(Array.isArray(expected)&&plan.length&&JSON.stringify(expected)===JSON.stringify(plan.map(({request,guard,post})=>({request,guard,post}))),'The recommendation changed. Review the current plan.');
+  for(const choice of plan){
+    const r=byId(choice.request),g=guardBy(choice.guard);
+    if(r.backup?.guard===g.id&&r.backup.status==='Ready'&&r.backup.post===choice.post)activateBackup(r);
+    else assign(r,g,choice.post);
+  }
+  return plan.length+' assignments approved.';
+}
+
 if(typeof module!=='undefined') module.exports={
-  seed,migrate,project,
+  seed,migrate,project,tickDispatch,canApplyCommand,assignedSupervisor,attendanceWindow,recordQrArrival,
   execute(snapshot, command, account) {
     data=migrate(structuredClone(snapshot)); data.now=Date.now();
     const {role,client,guard,name:contact}=account;
@@ -1103,7 +1788,19 @@ if(typeof module!=='undefined') module.exports={
     const form=new Map(Object.entries(fields));
     const shift=byId(id);
     let message;
-    if(role==='admin'&&action==='adjust-assignment'){
+    if(role==='guard'&&action==='supervisor-review')message=supervisorReview(shift,guard,fields);
+    else if(role==='admin'&&action==='approve-plan')message=approveCoveragePlan(fields.plan);
+    else if(role==='client'&&action==='feedback'){
+      insist(shift&&siteBy(shift.site).client===client&&shift.end<=data.now&&shift.assignments.length,'Feedback is available after a staffed shift ends.');
+      const rating=Number(fields.rating);
+      insist(Number.isInteger(rating)&&rating>=1&&rating<=5&&!shift.clientFeedback,'Choose a rating from 1 to 5. Each shift accepts one response.');
+      shift.clientFeedback={rating,note:String(fields.note||'').slice(0,300),at:data.now};
+      recordEvent(shift,'Client feedback received');
+      message='Feedback recorded.';
+    }else if(role==='admin'&&action==='choose-backup'){
+      insist(shift,'Shift unavailable.');
+      message=chooseBackup(shift,Number(fields.guard),fields.post);
+    }else if(role==='admin'&&action==='adjust-assignment'){
       const g=guardBy(extra);
       const assigned=shift?.assignments.find(a=>a.guard===g?.id);
       insist(assigned&&!isPast(shift),'Upcoming assignment required.');
@@ -1113,7 +1810,9 @@ if(typeof module!=='undefined') module.exports={
       const moved=newRequest(data.next++,shift.site,start,duration,1,shift.tier,start-data.now<=2*hour,shift.notes);
       Object.assign(moved,{dress:shift.dress,force:shift.force,vehicle:shift.vehicle,contact:shift.contact,source:shift.source,supervisors:Number(assigned.post==='Supervisor')});
       shift.assignments=shift.assignments.filter(a=>a!==assigned);
-      shift.need--;shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
+      shift.need--;
+      if(!shift.need&&shift.backup)shift.backup.status='Released';
+      shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
       if(shift.offers[g.id])shift.offers[g.id].status='Rescheduled';
       for(const swap of data.swaps)if(swap.shift===shift.id&&swap.guard===g.id&&swap.status==='Pending')swap.status='Declined';
       recordEvent(shift,'Rescheduled by dispatch',g.id);
@@ -1131,6 +1830,7 @@ if(typeof module!=='undefined') module.exports={
       insist(typeof fields.note==='string'&&fields.note.trim(),'Enter the review basis.');
       assignment.review={arrival:fields.arrival,report:fields.report,note:String(fields.note||'').slice(0,200),by:contact,at:data.now};
       recordEvent(shift,'Duty review saved',Number(extra));
+      attendanceCache.delete(data);
       message='Duty record saved.';
     }else if(role==='admin'&&action==='call-note'){
       const g=guardBy(extra);
@@ -1156,10 +1856,11 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }
+    versionRequests(snapshot,data);
     return {state:data,message,selected:view.selected,checked:[...view.checked]};
   }
 };
@@ -1170,7 +1871,7 @@ const tag=(label,style='')=>`<span class="tag ${style}">${label}</span>`;
 const empty=(label)=>`<div class="empty">${label}</div>`;
 const option=(value,label,selected)=>`<option value="${safe(value)}"${value===selected?' selected':''}>${safe(label)}</option>`;
 const confirmedCount=r=>r.confirmed??r.assignments.length;
-const statusOf=(r)=>r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
+const statusOf=(r)=>r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
 const meter=(r)=>`<div class="progress" role="progressbar" aria-label="Confirmed guards" aria-valuenow="${confirmedCount(r)}" aria-valuemax="${r.need}"><div style="width:${r.need?100*confirmedCount(r)/r.need:0}%"></div></div>`;
 const coverage=(r)=>`${confirmedCount(r)} of ${r.need} confirmed`;
 const requestsForClient=()=>data.requests.filter(r=>siteBy(r.site).client===view.client);
@@ -1200,12 +1901,13 @@ function adminView() {
   const r=byId(view.selected);
   return `${hero('Administrator','Dispatch board','Review coverage, approve assignments, and manage schedule changes.')}
     <div class="stats secondary-metrics">${metrics.map(([label,value])=>`<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join('')}</div>
-    ${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
+    ${planPanel()}${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
     <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div>${activityPanel()}</div></div>`;
 }
 
 function queueDecision(r){
   if(!r.need)return 'Rescheduled';
+  if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 'Check missing arrivals · '+safe(r.arrivalFollowUpOwner||'Duty dispatcher');
   if(!open(r))return r.assignments.filter(a=>!a.ack).length+' briefs unread';
   if(isPast(r))return 'Coverage missed';
   const offers=Object.values(r.offers);
@@ -1215,11 +1917,20 @@ function queueDecision(r){
   return gap(r)?gap(r)+' supervisor needed':open(r)+' positions open';
 }
 
+function dispatchPriority(r){
+  if(r.end<=data.now)return 0;
+  if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 6;
+  if(r.recoveryOf&&open(r))return 5;
+  if(open(r)&&!isPast(r)&&r.followUp?.due<=data.now)return 4;
+  if(open(r)&&!isPast(r)&&waiting(r))return 3;
+  if(open(r)&&!isPast(r)&&r.rush)return 2;
+  return 1;
+}
 function queueResults() {
   const list=data.requests.filter(r=>{
     const statusMatches=view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&!open(r);
     return statusMatches&&siteBy(r.site).name.toLowerCase().includes(view.search.toLowerCase());
-  }).sort((a,b)=>Number(Boolean(open(b)&&b.rush&&!isPast(b)))-Number(Boolean(open(a)&&a.rush&&!isPast(a)))||a.start-b.start);
+  }).sort((a,b)=>dispatchPriority(b)-dispatchPriority(a)||a.start-b.start);
   const pageSize=6;
   const offset=view.page*pageSize;
   if(!list.length) return empty('No requests match these filters.');
@@ -1241,23 +1952,26 @@ function requestPanel(r) {
   const deadline=outstanding.length?Math.min(...outstanding.map(o=>Math.min(o.expires,o.replyDeadline||Infinity))):0;
   const expired=Object.values(r.offers).some(o=>o.status==='Invited'&&!activeOffer(o));
   const reviewable=volunteers.filter(g=>!eligibility(g,r).length);
-  const headline=!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
+  const headline=r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn)?'Verify missing arrivals':!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
   const blocker=r.escalated?(r.followUp?'Follow-up owned by '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':'due by '+formatTime(r.followUp.due)):'Manual follow-up flagged · owner needed.'):!open(r)?'Coverage complete. Confirmed guards can see site instructions.':isPast(r)?'Shift started with unfilled positions.':!pool.length&&!invited&&!volunteers.length?'No eligible replies or new guards. Take follow-up.':'';
-  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.dress?`<p class="sub">Dress code � ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
-  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged</span></div>${meter(r)}
+  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
+  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged · ${r.assignments.filter(a=>a.checkIn).length} checked in</span></div>${meter(r)}
   ${r.force||r.vehicle?tag([r.force?'Use-of-force check':'',r.vehicle?'Vehicle / key / lockbox check':''].filter(Boolean).join(' · '),'warn'):''}${blocker?`<p class="sub">${blocker}</p>`:''}
   ${r.replacement&&gap(r)&&!isPast(r)?`<p class="sub">${gap(r)===1?'A replacement supervisor is required.':`${gap(r)} replacement supervisors are required.`}</p>`:''}
   <div class="actions form-actions">${reviewable.length?button('Review volunteers','jump-review',r.id,'','primary'):!open(r)&&unread?button('Check unread briefs','jump-briefs',r.id,'','primary'):''}${open(r)&&!isPast(r)&&pool.length?button(r.rush?'Send offer wave':'Send regular offers','wave',r.id,'',reviewable.length||invited?'':'primary'):''}${open(r)&&r.followUp?.owner!==account.name?button(r.followUp?'Take over follow-up':'Take follow-up','escalate',r.id):''}</div>
-   ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id])=>tag(guardBy(id).name+' · '+id+' · '+(data.phoneGuards?.includes(Number(id))?'Phone registered':'No registered phone'))).join('')+'</div></details>':''}
-  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by estimated travel time, then reliability.':'Ranked by reliability, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
-  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Reliability</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
+   ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id,o])=>tag(guardBy(id).name+' · '+id+' · '+phoneOfferStatus(r,Number(id),o))).join('')+'</div></details>':''}
+  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by guard record after travel eligibility checks.':'Ranked by guard record, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
+  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
     const reasons=eligibility(g,r);
     const {projected,ot}=scheduleCheck(g,r);
     const matches=preferenceMatches(g,r,projected);
-    return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${attendance(g).onTime}/${attendance(g).completed} on time</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
+    return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${offerFor(r,g)?.arrivalAt?' · Latest ETA projects '+formatTime(data.now+offerFor(r,g).arrivalAt-offerFor(r,g).at):''} ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${rankDetails(g,r)}</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
   }).join('')}</tbody></table></div>`:empty('Responses will appear here for administrator approval.')}
   ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
-  ${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
+  ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
+  ${!a.checkIn&&r.end>data.now&&r.start-data.now<=15*minute?button('Verify arrival','verify-arrival',r.id,a.guard):''}
+  ${!a.checkIn&&r.end>data.now&&isPast(r)?button('Report no-show','no-show',r.id,a.guard,'danger'):''}
+  ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
 }
 
 function exclusionSummary(r) {
@@ -1281,7 +1995,7 @@ function clientView() {
   const f=view.prefill;
   const visibleSites=sites.filter(s=>s.client===view.client);
   return `${hero('Client','Request coverage','Submit coverage needs and track confirmations for your sites.')}
-  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} � ${formatTime(e.at)} � ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
+  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
   <details class="details"><summary>Paste fictional client email</summary><textarea id="email" rows="3" aria-label="Client email" placeholder="Need 10 extra guards at Maple in two hours for 4 hours"></textarea> ${button("Extract draft","extract")}</details><form id="create-request"><div class="fields"><label class="full">Site<select name="site" required>${visibleSites.map(s=>option(s.id,s.name,f.site)).join('')}</select></label>
   <label>Start date<input type="date" name="date" min="${inputDate(data.now)}" value="${inputDate(data.now+2*hour)}" required></label><label>Start time<input type="time" name="time" value="${inputTime(data.now+2*hour)}" required></label>
   <label>Duration (hours)<input type="number" name="hours" min="0.5" max="24" step="0.5" value="${f.hours??4}" required></label><label>Guards needed<input type="number" name="count" min="1" max="120" value="${f.count??1}" required></label>
@@ -1343,7 +2057,20 @@ document.addEventListener('click',event=>{
   }
   if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();return;}
   if(action==='cancel'&&!confirm('Remove this assignment and reopen the post?'))return;
+  if(action==='approve-plan'){
+    const plan=view.displayedPlan||[];
+    if(!plan.length)return;
+    if(plan.some(item=>byId(item.request).force||byId(item.request).vehicle)&&!confirm('Confirm the special-post credentials for this plan.'))return;
+    submitAction(action,'','',{plan:plan.map(({request,guard,post})=>({request,guard,post}))});return;
+  }
+  if(action==='volunteer'&&(r?.needsArrivalCheck||extra==='refresh-eta')){
+    const estimate=window.prompt('How many minutes would it take you to arrive at the site?');
+    if(estimate===null||!estimate.trim())return;
+    submitAction(action,id,estimate);return;
+  }
+  if(action==='no-show'&&!confirm('Record a no-show and open replacement coverage?'))return;
   if(action==='remove-window'){submitAction(action,id);return;}
+  if(action==='travel-alert'&&view.role==='guard'){toggleTravelAlert(Number(id));return;}
   if(action==='phone-alert'){managePhoneAlerts();return;}
   if(action==='reset'){if(confirm('Reset to the original fictional scenario?')) submitAction('reset','',data.scenario);return;}
   if(action==='jump-review'){document.querySelector('#volunteer-review')?.focus();return;}
@@ -1389,6 +2116,8 @@ document.addEventListener('submit',event=>{
   if(form.id==='login'){signIn(form);return;}
   if(!account)return;
   const values=new FormData(form);
+  if(form.id==='save-attendance-pin')return;
+  if(form.dataset.bookingAction){submitAction(form.dataset.bookingAction,form.dataset.request,'',Object.fromEntries(values));return;}
   if(form.id==='find-record'){const g=guardBy(Number(values.get('guard')));if(!g){announce('Unknown guard ID.',true);return;}view.recordGuard=g.id;view.recordOpen=true;render();return;}
   if(form.id==='review-duty'){submitAction('review-duty',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
   if(form.id==='call-log'){submitAction('call-note',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
@@ -1400,7 +2129,7 @@ document.addEventListener('submit',event=>{
   }
   if(form.id==='unavailable'){submitAction('unavailable','','',Object.fromEntries(values));return;}
   if(form.id==='preferences'){
-    submitAction('preferences','','',{days:values.getAll('days'),blocks:values.getAll('blocks'),maxHours:Number(values.get('maxHours')),rush:values.has('rush')});
+    submitAction('preferences','','',{days:values.getAll('days'),blocks:values.getAll('blocks'),maxHours:Number(values.get('maxHours')),rush:values.has('rush'),standby:values.has('standby')});
     return;
   }
   submitAction(form.dataset.swap?'swap-request':form.id,form.dataset.swap||'','',Object.fromEntries(values));
@@ -1412,6 +2141,7 @@ const apiOptions=body=>({method:'POST',headers:{'Content-Type':'application/json
 let account=null, revision=-1, busy=false, generation=0;
 
 function showLogin() {
+  clearTravelAlerts();
   account=null;
   revision=-1;
   generation++;
@@ -1430,6 +2160,7 @@ function showLogin() {
         <p id="login-role" class="small" aria-live="polite"></p>
         <label for="login-password">Password or PIN</label>
         <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        ${document.querySelector('meta[name="sigma-pilot-key-required"]')?'<label for="pilot-key">Pilot access key</label><input id="pilot-key" name="pilot" type="password" maxlength="512" required>':''}
         <button class="button primary" type="submit">Sign in</button>
       </form>
     </section>`;
@@ -1489,12 +2220,12 @@ async function submitAction(action,id='',extra='',fields={}) {
   busy=true;
   let completed=false;
   try{
-    const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,checked:[...view.checked],action,id,extra,fields}));
+    const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,requestVersion:byId(id)?.version||0,checked:[...view.checked],action,id,extra,fields}));
     const result=await response.json();
     if(response.status===401)showLogin();
     if(!response.ok)throw Error(result.error);
     install(result);
-    if(action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
+    if(action==='no-show'||action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
     if(action==='create-request'){view.template=null;view.prefill={};}
     view.checked=new Set(result.checked);
     render();
@@ -1580,10 +2311,47 @@ function startApp() {
     const clock=document.querySelector('.clock');
     if(clock)clock.textContent=formatTime(data.now);
     updateRushCountdown();
+    updateShiftAlerts();
   },1000);
   if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 document.addEventListener('DOMContentLoaded',startApp);
+const calendarSizes=[100,125,150];
+function calendarZoom(){
+  const index=view.calendarZoom||0;
+  return `<div class="calendar-zoom" role="group" aria-label="Calendar text size"><span>Text size</span>
+    <button type="button" class="button" data-calendar-zoom="-1" aria-label="Decrease calendar text size" ${index===0?'disabled':''}>−</button>
+    <output aria-live="polite">${calendarSizes[index]}%</output>
+    <button type="button" class="button" data-calendar-zoom="1" aria-label="Increase calendar text size" ${index===calendarSizes.length-1?'disabled':''}>+</button></div>`;
+}
+document.addEventListener('click',event=>{
+  const control=event.target.closest('[data-calendar-zoom]');
+  if(!control)return;
+  const container=control.closest('.calendar-scalable');
+  const next=Number(control.dataset.calendarZoom)+(view.calendarZoom||0);
+  if(!container||next<0||next>=calendarSizes.length)return;
+  view.calendarZoom=next;
+  container.dataset.calendarSize=calendarSizes[next];
+  container.querySelector('.calendar-zoom').outerHTML=calendarZoom();
+  const same=container.querySelector('[data-calendar-zoom="'+control.dataset.calendarZoom+'"]');
+  (same.disabled?container.querySelector('[data-calendar-zoom]:enabled'):same).focus({preventScroll:true});
+});
+function calendarMarker(kind,label){
+  return `<span class="calendar-marker calendar-${kind}"><span class="calendar-dot" aria-hidden="true"></span>${label}</span>`;
+}
+function weekShift(r){
+  const booked=r.assignments.length;
+  const confirmed=r.assignments.filter(a=>a.ack).length;
+  const available=open(r);
+  return `<button type="button" class="button week-shift" data-action="select" data-id="${r.id}">
+    <strong>${formatTime(r.start)}</strong>
+    ${booked?calendarMarker('booked',booked+' booked'):''}
+    ${available?calendarMarker('available',available+(isPast(r)?' unfilled':' available')):''}
+    ${confirmed?calendarMarker('booked',confirmed+' brief confirmed'):''}
+    ${booked>confirmed?calendarMarker('pending',(booked-confirmed)+' brief unconfirmed'):''}
+    ${!isPast(r)&&waiting(r)?calendarMarker('pending',waiting(r)+' awaiting approval'):''}
+  </button>`;
+}
 function weekBoard(){
   const today=inputDate(data.now);
   const monday=calendarDate(today,1-(new Date(today+'T12:00Z').getUTCDay()||7)+(view.weekOffset||0)*7);
@@ -1591,9 +2359,9 @@ function weekBoard(){
   const rows=sites.map(site=>{
     const shifts=data.requests.filter(r=>r.need&&r.site===site.id&&inputDate(r.start)<=dates[6]&&inputDate(r.end-1)>=monday);
     if(!shifts.length)return '';
-    return '<tr><th>'+safe(site.name)+'</th>'+dates.map(d=>'<td>'+shifts.filter(r=>inputDate(r.start)<=d&&inputDate(r.end-1)>=d).map(r=>button(formatTime(r.start)+' · '+coverage(r),'select',r.id)).join(' ')+'</td>').join('')+'</tr>';
+    return '<tr><th>'+safe(site.name)+'</th>'+dates.map(d=>'<td>'+shifts.filter(r=>inputDate(r.start)<=d&&inputDate(r.end-1)>=d).map(r=>weekShift(r)).join(' ')+'</td>').join('')+'</tr>';
   }).join('');
-  return `<details class="card" id="week-board" ${view.weekOpen?'open':''}><summary>Week by site</summary><div class="row">${button('Previous week','week',-1)}<strong>${monday} – ${dates[6]}</strong>${button('Next week','week',1)}</div><div style="overflow:auto"><table><thead><tr><th>Site</th>${dates.map(d=>'<th>'+d.slice(5)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  return `<details class="card calendar-scalable" id="week-board" data-calendar-size="${calendarSizes[view.calendarZoom||0]}" ${view.weekOpen?'open':''}><summary>Week by site</summary>${calendarZoom()}<div class="row">${button('Previous week','week',-1)}<strong>${monday} – ${dates[6]}</strong>${button('Next week','week',1)}</div><p class="sub">Booked means dispatch assigned a guard. Brief confirmation means the guard acknowledged the instructions.</p><div style="overflow:auto"><table><thead><tr><th>Site</th>${dates.map(d=>'<th>'+d.slice(5)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
 }
 function operationsTools(r){
   const id=view.recordGuard||r.cancelledGuard||r.assignments[0]?.guard||Number(Object.keys(r.offers)[0])||guards.find(g=>!g.available)?.id;
@@ -1610,6 +2378,54 @@ function operationsTools(r){
     ${r.assignments.length&&!isPast(r)?`<details id="adjust-post"><summary>Adjust an assigned shift</summary><form id="adjust-form" data-request="${r.id}" class="wrap"><label>Assigned guard<select name="guard">${r.assignments.map(a=>option(a.guard,guardBy(a.guard).name+' · '+a.guard)).join('')}</select></label><label>Date<input name="date" type="date" value="${inputDate(r.start)}" required></label><label>Start<input name="time" type="time" value="${inputTime(r.start)}" required></label><label>Hours<input name="hours" type="number" min=".5" max="24" step=".5" value="${(r.end-r.start)/hour}" required></label><button class="button">Reoffer revised post</button></form></details>`:''}`;
 }
 
+function rankDetails(g,r){
+  const record=attendance(g,r.site);
+  const supervisorSignal=record.fitCount?' · Supervisor fit '+(record.fitAdjustment>=0?'+':'')+record.fitAdjustment.toFixed(1)+' pts across '+record.fitCount+' shifts':'';
+  const feedback=record.feedback===null?'No site feedback':record.feedback.toFixed(1)+'/5 team feedback · '+record.feedbackCount+' shift rating(s)';
+  return `${Math.round(record.score)}/100 <details><summary>Score details</summary>${record.onTime}/${record.completed} on time · ${Math.round(record.reports*100)}% reports accepted · ${record.cancellations} cancellations · ${feedback}${supervisorSignal}</details>`;
+}
+function feedbackPanel(r){
+  if(r.end>data.now||!r.confirmed)return '';
+  if(r.feedback)return '<p class="sub">Coverage rated '+r.feedback.rating+'/5</p>';
+  return `<details id="feedback-${r.id}"><summary>Rate completed coverage</summary>
+    <form id="feedback-form-${r.id}" data-booking-action="feedback" data-request="${r.id}" class="fields">
+      <label>Service rating<select name="rating" required><option value="">Choose rating</option>${[1,2,3,4,5].map(n=>option(n,n+'/5')).join('')}</select></label>
+      <label>Notes<textarea name="note" maxlength="300"></textarea></label><button class="button">Submit feedback</button>
+    </form></details>`;
+}
+function standbyPanel(r){
+  if(!r.need||isPast(r))return '';
+  const b=r.backup;
+  const pending=b&&['Invited','Ready'].includes(b.status);
+  const matching=b?.post==='Supervisor'?gap(r)>0:open(r)>gap(r);
+  const candidates=pending?[]:sortedGuards(r).filter(g=>!eligibility(g,r,{forSwap:true}).length);
+  return `<details id="standby-panel" class="details"><summary>Standby coverage · ${pending?b.status:'Unassigned'}</summary>
+    ${pending?`<p>${safe(guardBy(b.guard).name)} · ${b.guard} · ${b.post}</p><div class="actions">${b.status==='Ready'&&matching?button('Approve standby for vacancy','activate-backup',r.id,'','primary'):''}${button('Release standby','release-backup',r.id)}</div>`:
+    `<form id="standby-form" data-booking-action="choose-backup" data-request="${r.id}" class="fields">
+      <label>Eligible standby<select name="guard" required><option value="">Choose guard</option>${candidates.map(g=>option(g.id,g.name+' · '+g.id+(g.tier===2?' · Supervisor':''))).join('')}</select></label>
+      <label>Post<select name="post"><option>General</option>${r.supervisors?'<option>Supervisor</option>':''}</select></label>
+      <button class="button">Invite standby</button>
+    </form>`}
+    ${r.rush&&open(r)>0&&availableForWave(r).length?button('Offer to all remaining eligible guards','broadcast',r.id):''}
+  </details>`;
+}
+
+function phoneOfferStatus(r,id,offer){
+  const accepted=data.phoneDelivery?.some(row=>row.shift===r.id&&row.guard===id&&row.offered===offer.at&&row.accepted);
+  if(accepted)return 'Push provider accepted';
+  const attempted=data.phoneDelivery?.find(row=>row.shift===r.id&&row.guard===id&&row.offered===offer.at);
+  if(attempted&&data.phoneGuards?.includes(id))return attempted.exhausted?'Push failed · follow up':'Push retry pending';
+  return data.phoneGuards?.includes(id)?'Awaiting push result':'No registered phone';
+}
+function planPanel(){
+  const plan=coveragePlan();
+  view.displayedPlan=plan;
+  if(!plan.length)return '';
+  return `<details class="card" id="coverage-plan"><summary>Coverage plan · ${plan.length} proposed</summary>
+    <ul>${plan.map(item=>`<li>${safe(siteBy(byId(item.request).site).name)} · ${formatTime(byId(item.request).start)} · ${item.post} · ${safe(guardBy(item.guard).name)} · ${safe(item.reason)}</li>`).join('')}</ul>
+    ${button('Approve proposed assignments','approve-plan','','','primary')}</details>`;
+}
+
 const guardTabs=[
   ['shifts','Schedule'],['open','Offers & swaps'],['leave','Time off'],['hours','Availability']
 ];
@@ -1620,7 +2436,7 @@ const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
   const rush=rushOffers();
-  return `${rush.length?rushBanner(rush[0],rush.length):''}
+  return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
     ${({shifts:guardSchedule,open:guardAdditionalShifts,hours:guardHours,leave:guardLeave})[view.guardTab]()}`;
@@ -1651,18 +2467,31 @@ function updateRushCountdown() {
   }
   signalRush();
 }
-function monthCalendar(shifts){
+function guardCalendarStatus(r){
+  if(r.mine)return 'booked';
+  if(r.start<=data.now)return null;
+  if(r.offer?.status==='Volunteered'||r.backup)return 'pending';
+  if(r.canVolunteer&&(!r.offer||activeOffer(r.offer)))return 'available';
+  return null;
+}
+const calendarLabels={booked:'Booked',available:'Available',pending:'Unconfirmed'};
+const fallsOnDate=(r,date)=>inputDate(r.start)<=date&&inputDate(r.end-1)>=date;
+function monthCalendar(requests){
   const selected=view.calendarDate||inputDate(data.now);
   const first=selected.slice(0,7)+'-01';
   const offset=(new Date(first+'T12:00Z').getUTCDay()+6)%7;
   const label=new Intl.DateTimeFormat('en-CA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(first+'T12:00Z'));
-  return `<div class="calendar"><div class="row"><button type="button" data-month="-1" aria-label="Previous month">‹</button><strong>${label}</strong><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="days">
+  return `<div class="calendar calendar-scalable" data-calendar-size="${calendarSizes[view.calendarZoom||0]}">${calendarZoom()}<div class="row"><button type="button" data-month="-1" aria-label="Previous month">‹</button><strong>${label}</strong><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="days">
   ${['M','T','W','T','F','S','S'].map(d=>'<span>'+d+'</span>').join('')}
   ${Array.from({length:42},(_,i)=>{
     const date=calendarDate(first,i-offset);
-    const assigned=shifts.some(r=>inputDate(r.start)<=date&&inputDate(r.end-1)>=date);
-    return `<button type="button" data-date="${date}" aria-pressed="${selected===date}" aria-label="${date}${assigned?', scheduled':''}" class="${assigned?'scheduled ':''}${date.slice(0,7)!==first.slice(0,7)?'adjacent':''}">${Number(date.slice(-2))}</button>`;
-  }).join('')}</div></div>`;
+    const statuses=[...new Set(requests.filter(r=>fallsOnDate(r,date)).flatMap(r=>{
+      const status=guardCalendarStatus(r);
+      return r.mine&&!r.mine.ack?['booked','pending']:[status];
+    }).filter(Boolean))];
+    const labels=statuses.map(key=>calendarLabels[key]);
+    return `<button type="button" data-date="${date}" aria-pressed="${selected===date}" aria-label="${[date,...labels].join(', ')}" class="${date.slice(0,7)!==first.slice(0,7)?'adjacent':''}">${Number(date.slice(-2))}<span class="calendar-day-markers" aria-hidden="true">${statuses.map(key=>calendarMarker(key,'')).join('')}</span></button>`;
+  }).join('')}</div><div class="wrap calendar-legend">${Object.entries(calendarLabels).map(([key,label])=>calendarMarker(key,label)).join('')}</div></div>`;
 }
 document.addEventListener('click',event=>{
   const control=event.target.closest('[data-schedule-mode],[data-date],[data-month]');
@@ -1685,30 +2514,44 @@ function guardSchedule() {
   const phoneSupported=location.protocol!=='file:'&&'PushManager' in window&&'Notification' in window;
   const phoneOn=phoneSupported&&Notification.permission==='granted'&&data.phoneRegistered;
   const selected=view.calendarDate||inputDate(data.now);
-  const visible=view.scheduleMode==='Month'?shifts.filter(r=>inputDate(r.start)<=selected&&inputDate(r.end-1)>=selected):shifts;
-  return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p></section>`).join('')}
-    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} � ${formatDay(n.start)} ${formatTime(n.start)} � ${safe(n.status)}</p>`).join('')}</details>`:''}
+  const calendarRequests=data.requests.filter(guardCalendarStatus);
+  const monthMode=view.scheduleMode==='Month';
+  const visible=monthMode?shifts.filter(r=>fallsOnDate(r,selected)):shifts;
+  const opportunities=monthMode?calendarRequests.filter(r=>!r.mine&&fallsOnDate(r,selected)):[];
+  return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p>${r.rush?button('Update arrival estimate','volunteer',r.id,'refresh-eta'):''}</section>`).join('')}
+    ${data.requests.filter(r=>r.backup).map(r=>`<section class="card"><h2>Standby · ${safe(r.location.area)}</h2><p>${shiftTime(r)} · ${safe(r.backup.post)}</p><p>${r.backup.status==='Ready'?'On standby. Wait for dispatch approval before travelling.':'Can you cover this shift if needed?'}</p><div class="actions">${r.backup.status==='Invited'?button('Accept standby','standby-accept',r.id,'','primary'):''}${button(r.backup.status==='Ready'?'Withdraw standby':'Decline standby','standby-decline',r.id)}</div></section>`).join('')}
+    ${supervisorCrewPanel()}
+    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
     <section class="card schedule-card"><div class="section-top"><h2>Assignments</h2><div class="segments" aria-label="Schedule view">${['Agenda','Month'].map(mode=>`<button type="button" data-schedule-mode="${mode}" aria-pressed="${(view.scheduleMode||'Agenda')===mode}">${mode}</button>`).join('')}</div></div>
-    ${view.scheduleMode==='Month'?monthCalendar(shifts):''}
+    ${view.scheduleMode==='Month'?monthCalendar(calendarRequests):''}
     ${visible.length?visible.map((r,index)=>{
     const {name,uniform,notes,brief,dress}=r.location;
     const label=isPast(r)?'In progress':r===shifts[0]?'Next shift':'Upcoming';
-    return `<div class="entry"><div class="row"><strong class="shift-time">${formatTime(r.start)} – ${formatTime(r.end)}</strong>${tag(label,'good')}</div>
+    return `<div class="entry"><div class="row"><strong class="shift-time">${formatTime(r.start)} – ${formatTime(r.end)}</strong>${calendarMarker('booked','Booked · '+label)}</div>
+      <p class="sub">${calendarMarker(r.mine.ack?'booked':'pending',r.mine.ack?'Brief confirmed':'Brief unconfirmed')}</p>
       <p class="site-line">${safe(name)}</p><p class="sub">${shiftTime(r)} · ${safe(uniform)} · ${r.mine.post||'Confirmed'}${dress?' · '+safe(dress):''}</p>
-      <p class="check-in"><strong>Check-in</strong> ${safe(notes)}${brief?' '+safe(brief):''}</p>
+      <p class="sub" data-shift-reminder="${r.id}"></p>
+      ${!isPast(r)&&r.location.coordinates?`<div class="actions">${button(travelWatches.has(r.id)?'Stop travel alert':'Enable travel alert','travel-alert',r.id)}<span class="small" data-travel-status="${r.id}" aria-live="polite"></span></div>`:''}
+      <div class="actions" data-arrival-action="${r.id}">${arrivalAction(r)}</div>
+      <p class="check-in"><strong>Check-in instructions</strong> ${safe(notes)}${brief?' '+safe(brief):''}</p>
       <div class="actions form-actions">${r.mine.ack?tag(briefStatus(r),'good'):button('Acknowledge site brief','ack',r.id,'','primary')}</div>
       ${!isPast(r)?`<div class="actions form-actions">${r.pendingSwap?tag('Swap pending','warn'):r.peers.length?button('Offer to swap pool','pool',r.id):''}${button('Report cancellation','guard-cancel',r.id,'','danger')}</div>
       ${r.peers.length?`<details class="details"><summary>Propose swap to an eligible peer</summary>
         <form data-swap="${r.id}" class="wrap"><label>Eligible guard <select name="target" required><option value="">Choose a guard</option>${r.peers.map(peer=>option(peer.id,peer.name+' · '+peer.id)).join('')}</select></label><button class="button">Propose swap</button></form>
       </details>`:''}`:''}
     </div>`;
-  }).join(''):empty(view.scheduleMode==='Month'?'No current or upcoming assignment for this date.':'Your approved assignments will appear here.')}</section><section class="card"><h2>Rush alerts on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
+  }).join(''):opportunities.length?'':empty(monthMode?'No shifts or offers for this date.':'Your approved assignments will appear here.')}
+    ${opportunities.map(r=>{
+      const status=guardCalendarStatus(r);
+      const label=r.offer?.status==='Volunteered'?'Unconfirmed · awaiting dispatch approval':r.backup?'Unconfirmed · standby':'Available';
+      return `<div class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${calendarMarker(status,label)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${status==='available'?offerActions(r):''}</div>`;
+    }).join('')}</section><section class="card"><h2>Shift notifications on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
     ${phoneSupported?button(phoneOn?'Turn phone alerts off':'Turn phone alerts on','phone-alert'):''}
     ${button(alertGuard===account.id?'Mute in-app alerts':'Enable in-app alerts','alert-device')}</div></section>`;
 }
 function regularOfferCard(r) {
   const {area,uniform}=r.location;
-  return `<article class="entry"><strong>${r.rush?'Rush � ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
+  return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
   const regular=guardOpenShifts();
@@ -1735,7 +2578,8 @@ function guardHours() {
       <fieldset><legend>Shift blocks</legend><div class="wrap">${choices(blocks,profile.blocks,'blocks')}</div>
       <p class="sub">Morning 6 a.m.–noon · Afternoon noon–6 p.m. · Overnight 6 p.m.–6 a.m.</p></fieldset>
       <label>Maximum weekly hours target <input type="number" name="maxHours" min="1" max="168" step="0.5" value="${profile.maxHours}" required></label>
-      <label class="choice"><input type="checkbox" name="rush" ${profile.rush?'checked':''}> Receive last-minute rush offers</label>
+      <label class="choice"><input type="checkbox" name="standby" ${profile.standby?'checked':''}> Receive standby invitations for critical posts</label>
+      <label class="choice"><input type="checkbox" name="rush"  ${profile.rush?'checked':''}> Receive last-minute rush offers</label>
       <div class="actions"><button class="button primary">Save preferences</button></div>
     </form>
   </section>`;
@@ -1816,6 +2660,75 @@ async function managePhoneAlerts(){
   }catch(error){announce(error.message,true);}
 }
 
+
+const travelWatches=new Map();
+const remindedShifts=new Set();
+function clearTravelAlerts(){
+  for(const watch of travelWatches.values())navigator.geolocation.clearWatch(watch.handle);
+  travelWatches.clear();
+  remindedShifts.clear();
+}
+function travelEstimate(origin,destination){
+  const rad=Math.PI/180;
+  const [lat,lon]=origin.map(x=>x*rad);
+  const [destLat,destLon]=destination.map(x=>x*rad);
+  const a=Math.sin((destLat-lat)/2)**2+Math.cos(lat)*Math.cos(destLat)*Math.sin((destLon-lon)/2)**2;
+  return Math.ceil(12742*Math.asin(Math.sqrt(Math.min(1,a)))*1.35/35*60);
+}
+function updateShiftAlerts(){
+  if(!account||view.role!=='guard')return;
+  const now=Date.now();
+  for(const [id,watch] of travelWatches){
+    const r=byId(id);
+    if(!r?.mine||r.start<=now){
+      navigator.geolocation.clearWatch(watch.handle);
+      travelWatches.delete(id);
+      continue;
+    }
+    const status=document.querySelector('[data-travel-status="'+id+'"]');
+    if(!watch.position){if(status)status.textContent=watch.error||'Waiting for location';continue;}
+    const eta=travelEstimate(watch.position,r.location.coordinates);
+    const leave=r.start-(eta+10)*minute;
+    if(status)status.textContent='Estimated '+eta+' min drive · '+(leave<=now?'Leave now':'Leave by '+formatTime(leave))+' · 10 min arrival buffer';
+    if(leave<=now&&!watch.alerted){
+      watch.alerted=true;
+      announce('Leave now for '+r.location.name+'. Allow '+eta+' minutes plus the arrival buffer.');
+      navigator.vibrate?.(250);
+    }
+  }
+  for(const r of guardAssignments()){
+    const arrival=document.querySelector('[data-arrival-action="'+r.id+'"]');
+    const action=arrivalAction(r);
+    if(arrival&&arrival.dataset.current!==action){arrival.dataset.current=action;arrival.innerHTML=action;}
+    const remaining=r.start-now;
+    if(remaining<=0||remaining>hour)continue;
+    const message='Shift starts in '+Math.ceil(remaining/minute)+' min. '+(r.mine.ack?'Site brief acknowledged.':'Review and acknowledge the site brief.');
+    const label=document.querySelector('[data-shift-reminder="'+r.id+'"]');
+    if(label&&label.textContent!==message)label.textContent=message;
+    const key=r.id+':'+r.mine.at;
+    if(!remindedShifts.has(key)){remindedShifts.add(key);announce(r.location.name+' · '+message);}
+  }
+}
+function toggleTravelAlert(id){
+  const existing=travelWatches.get(id);
+  if(existing){navigator.geolocation.clearWatch(existing.handle);travelWatches.delete(id);render();return;}
+  if(!navigator.geolocation){announce('Location access is unavailable in this browser.',true);return;}
+  const watch={position:null,alerted:false};
+  travelWatches.set(id,watch);
+  watch.handle=navigator.geolocation.watchPosition(position=>{
+    watch.position=[position.coords.latitude,position.coords.longitude];
+    updateShiftAlerts();
+  },error=>{watch.error=error.code===1?'Location permission denied':'Location unavailable';updateShiftAlerts();},{maximumAge:60000,timeout:15000});
+  render();
+  updateShiftAlerts();
+}
+
+function arrivalAction(r){
+  if(r.mine.checkIn)return tag('Checked in at '+formatTime(r.mine.checkIn.at),'good');
+  if(r.start-data.now>15*minute||data.now>=r.end)return '';
+  if(data.qrAttendance)return button('Scan supervisor QR','open-attendance-scan',r.id,'','primary');
+  return button('I am on site · self-report','check-in',r.id,'','primary');
+}
 
 let chatOpen=false;
 let nextChatAction=0;
@@ -2037,6 +2950,170 @@ function handleChatAction(action,id) {
   return false;
 }
 
+const attendanceLink=()=>location.hash.match(/^#attendance=(\d+)\.([\w-]{32})$/);
+let qrReaderLoading;
+
+function attendanceScanPanel(){
+  if(!data.qrAttendance)return '';
+  const pending=attendanceLink();
+  if(!pending)return '';
+  return `<section class="card"><h2>Supervisor QR scanned</h2><p>Share your current location to verify attendance.</p>${button('Verify location and check in','redeem-attendance',Number(pending[1]),'','primary')}</section>`;
+}
+
+function attendancePinPanel(r){
+  if(!data.qrAttendance)return '';
+  return `<details class="details" id="attendance-pin"><summary>Attendance site pin · ${data.attendanceSites?.includes(r.site)?'Configured':'Required for QR check-in'}</summary>
+    <p class="sub">Use the designated on-site meeting point. Updating the pin invalidates current QR codes for this site.</p>
+    <form id="save-attendance-pin" data-site="${r.site}" class="fields"><label>Latitude<input name="latitude" inputmode="decimal" type="number" step="any" min="-90" max="90" required></label>
+    <label>Longitude<input name="longitude" inputmode="decimal" type="number" step="any" min="-180" max="180" required></label>
+    <button class="button">Save site pin</button>${button('Use my current location','fill-attendance-pin')}</form></details>`;
+}
+
+function supervisorCrewPanel(){
+  const roster=data.requests.filter(r=>r.supervisory);
+  return roster.map(r=>`<details class="card" id="crew-${r.id}"><summary>Supervisor crew · ${safe(r.location.name)}</summary>
+    <p>${shiftTime(r)}</p>${data.qrAttendance&&attendanceWindow(r,data.now)?button('Show attendance QR','issue-attendance',r.id,'','primary'):''}
+    ${r.crew.length?r.crew.map(member=>`<form class="attendance-fit" id="review-${r.id}-${member.id}" data-booking-action="supervisor-review" data-request="${r.id}">
+      <input name="guard" type="hidden" value="${member.id}"><strong>${safe(member.name)} · ${tiers[member.tier]}</strong>
+      <p class="sub">${member.post?'Assigned · '+member.post:'Volunteer · awaiting dispatch'}${member.checkedIn?' · '+(member.checkedIn==='qr-location'?'QR attendance verified':'Arrival recorded'):''}</p>
+      <div class="fields"><label>Fit assessment<select name="verdict">${['Good fit','Needs coaching','Needs review'].map(v=>option(v,v,member.review?.verdict)).join('')}</select></label>
+      <label>Observed skill<select name="signal">${fitSignals.map(v=>option(v,v,member.review?.signal)).join('')}</select></label>
+      <label class="full">Observation<textarea name="note" required maxlength="300">${safe(member.review?.note||'')}</textarea></label></div>
+      <button class="button">${member.review?'Update fit review':'Save fit review'}</button></form>`).join(''):empty('Assigned crew and volunteers will appear here.')}</details>`).join('');
+}
+
+function currentPosition(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation)return reject(Error('Location access is unavailable.'));
+    navigator.geolocation.getCurrentPosition(position=>resolve({
+      latitude:position.coords.latitude,longitude:position.coords.longitude,accuracy:position.coords.accuracy,capturedAt:position.timestamp
+    }),error=>reject(Error(error.code===1?'Allow location access and try again.':'Could not get a current location fix.')),{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  });
+}
+async function attendancePost(route,body){
+  const response=await requestApi('/api/attendance/'+route,apiOptions(body));
+  const result=await response.json();
+  if(!response.ok)throw Error(result.error||'Attendance action failed.');
+  return result;
+}
+function attendanceDialog(title){
+  const dialog=document.createElement('dialog');
+  dialog.className='attendance-dialog';
+  dialog.innerHTML=`<h2>${safe(title)}</h2><div data-attendance-content></div><button type="button" class="button" data-close-attendance>Close</button>`;
+  dialog.querySelector('[data-close-attendance]').addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  document.body.append(dialog);
+  dialog.showModal();
+  return dialog;
+}
+async function showAttendanceQr(requestId){
+  const location=await currentPosition();
+  const result=await attendancePost('issue',{requestId,...location});
+  const dialog=attendanceDialog('Crew attendance QR');
+  const content=dialog.querySelector('[data-attendance-content]');
+  const image=document.createElement('img');
+  image.src=result.image;
+  image.alt='Scan this QR to check in to the shift';
+  const line=document.createElement('p');
+  content.append(image,line);
+  const update=()=>{
+    const seconds=Math.max(0,Math.ceil((result.expires-Date.now())/1000));
+    line.textContent=seconds?'Code expires in '+seconds+' seconds.':'Code expired. Close and issue a new code.';
+    if(!seconds)image.hidden=true;
+  };
+  update();
+  const timer=setInterval(update,1000);
+  dialog.addEventListener('close',()=>clearInterval(timer),{once:true});
+}
+function loadQrReader(){
+  qrReaderLoading ||= new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='/qr-reader.js';
+    script.onload=resolve;
+    script.onerror=()=>{qrReaderLoading=null;script.remove();reject(Error('Could not load the QR reader. Use the phone Camera app to scan and open the link.'));};
+    document.head.append(script);
+  });
+  return qrReaderLoading;
+}
+async function scanAttendanceQr(){
+  if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access requires HTTPS. You can also use your phone Camera app to open the QR link.');
+  await loadQrReader();
+  const dialog=attendanceDialog('Scan your supervisor’s QR');
+  const content=dialog.querySelector('[data-attendance-content]');
+  const line=document.createElement('p');
+  line.textContent='Point your camera at the supervisor’s current code.';
+  const video=document.createElement('video');
+  video.playsInline=true;
+  video.muted=true;
+  content.append(video,line);
+  let stream,timer;
+  dialog.addEventListener('close',()=>{clearInterval(timer);stream?.getTracks().forEach(track=>track.stop());},{once:true});
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    if(!dialog.open){stream.getTracks().forEach(track=>track.stop());return;}
+    video.srcObject=stream;
+    await video.play();
+    const canvas=document.createElement('canvas');
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    timer=setInterval(()=>{
+      if(!video.videoWidth)return;
+      canvas.width=Math.min(640,video.videoWidth);
+      canvas.height=Math.round(canvas.width*video.videoHeight/video.videoWidth);
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const result=window.jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height,{inversionAttempts:'dontInvert'});
+      if(!result)return;
+      let link;
+      try{link=new URL(result.data);}catch{return;}
+      if(link.origin!==location.origin||!/^#attendance=\d+\.[\w-]{32}$/.test(link.hash)){
+        line.textContent='This code is not a Sigma Dispatch attendance code.';return;
+      }
+      dialog.close();
+      history.replaceState(null,'',link.hash);
+      render();
+    },180);
+  }catch(error){if(dialog.open)dialog.close();throw error;}
+}
+async function redeemAttendance(){
+  const match=attendanceLink();
+  if(!match)throw Error('Scan the supervisor’s current QR code.');
+  const result=await attendancePost('redeem',{requestId:Number(match[1]),code:match[2],...await currentPosition()});
+  history.replaceState(null,'',location.pathname+location.search);
+  await refresh();
+  render();
+  announce(result.message);
+}
+
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-action]');
+  if(!account||!button)return;
+  const {action,id}=button.dataset;
+  const actions={
+    'issue-attendance':()=>showAttendanceQr(Number(id)),
+    'open-attendance-scan':scanAttendanceQr,
+    'redeem-attendance':redeemAttendance,
+    'fill-attendance-pin':async()=>{
+      const position=await currentPosition();
+      const form=document.querySelector('#save-attendance-pin');
+      if(form){form.elements.latitude.value=position.latitude;form.elements.longitude.value=position.longitude;}
+    }
+  };
+  if(actions[action])actions[action]().catch(error=>announce(error.message,true));
+});
+document.addEventListener('submit',event=>{
+  const form=event.target;
+  if(form.id!=='save-attendance-pin')return;
+  event.preventDefault();
+  attendancePost('pin',{site:form.dataset.site,latitude:Number(form.elements.latitude.value),longitude:Number(form.elements.longitude.value)})
+    .then(async result=>{await refresh();announce(result.message);}).catch(error=>announce(error.message,true));
+},true);
+window.addEventListener('hashchange',()=>{if(account?.role==='guard')render();});
+
+function dispatchFitReviews(r){
+  if(!r.fitReviews?.length)return '';
+  return `<details class="details"><summary>Supervisor fit reviews · ${r.fitReviews.length}</summary>
+    ${r.fitReviews.map(entry=>`<div class="entry"><strong>${safe(guardBy(entry.guard).name)} · ${safe(entry.verdict)}</strong>
+      <p>${safe(entry.signal)} · ${safe(entry.note)}</p><p class="sub">Reviewed by ${safe(guardBy(entry.reviewer).name)} · ${formatDay(entry.at)} ${formatTime(entry.at)}</p></div>`).join('')}</details>`;
+}
+
 </script>
 </body></html>
-
