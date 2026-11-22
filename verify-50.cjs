@@ -54,6 +54,8 @@ async function run(){
       const id=receipt.id;
       await admin.evaluate(()=>refresh());
       await admin.waitForFunction(id=>!!byId(id),id);
+      const dispatchTools=admin.locator('#dispatch-tools');
+      if(!await dispatchTools.evaluate(el=>el.open))await dispatchTools.locator('> summary').click();
       await admin.locator('#week-board').evaluate(el=>el.open=true);
       const shiftWeek=await admin.evaluate(id=>{
         const monday=date=>calendarDate(date,1-(new Date(date+'T12:00Z').getUTCDay()||7));
@@ -71,8 +73,8 @@ async function run(){
         await guard.locator('#urgent-banner').getByText(/company-wide staffing alert.*available to you/).waitFor();
         await guard.getByRole('button',{name:'View available shifts'}).click();
         await guard.locator('.rush-banner [data-action=volunteer][data-id="'+id+'"]').waitFor();
-        await guard.locator('.rush-banner').getByText('Open rush shift').waitFor();
-        assert.equal(await guard.locator('.rush-banner [data-reply-deadline]').count(),0);
+        await guard.locator('[data-staffing-request="'+id+'"]').getByText('Open rush shift').waitFor();
+        assert.equal(await guard.locator('[data-staffing-request="'+id+'"] [data-reply-deadline]').count(),0);
         await guard.locator('[data-action=guard-tab][data-id=shifts]').click();
         await guard.getByRole('button',{name:'Enable alert sound and vibration'}).click();
         await guard.reload();

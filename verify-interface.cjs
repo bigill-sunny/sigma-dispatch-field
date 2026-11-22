@@ -26,7 +26,7 @@ async function verifyInterface(){
     assert.equal(await admin.locator('#invited').evaluate(el=>el.open),false);
     const guardId=await admin.evaluate(()=>Object.keys(byId(1).offers)[0]);
     const guard=await login(guardId,'Guard');
-    await guard.locator('.rush-banner [data-action=volunteer]').click();
+    await guard.locator('.rush-banner [data-action=volunteer][data-id="1"]').click();
     await guard.getByText(/You volunteered. Wait/).waitFor();
     await admin.locator('[data-action=jump-review]').click();
     await admin.locator('[data-action=approve]').first().click();

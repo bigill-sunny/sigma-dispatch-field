@@ -134,6 +134,7 @@ function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
   const reasons=[];
+  if(r.cancelledAt)return ['Request cancelled'];
   if(!forSwap&&g.tier<2&&open(r)>0&&gap(r)>=open(r))reasons.push('Supervisor post required');
   if(r.force&&(g.id-3000)%6===0)reasons.push('MORB / use-of-force record missing');
   if(r.vehicle&&(g.id-3000)%3!==1)reasons.push('Vehicle authorization missing');
@@ -465,7 +466,38 @@ function openRequest(r) {
   view.checked.clear();
 }
 
+function cancelRequest(r) {
+  insist(!r.cancelledAt&&r.need>0&&r.start>data.now,'Only upcoming requests can be cancelled.');
+  r.cancelledAt=data.now;
+  r.cancelledBooking={need:r.need,supervisors:r.supervisors||0,assignments:r.assignments};
+  const affected=new Set(r.assignments.map(a=>a.guard));
+  if(['Invited','Ready'].includes(r.backup?.status)){
+    affected.add(r.backup.guard);
+    r.backup.status='Released';
+    if(r.offers[r.backup.guard]?.status==='Standby')r.offers[r.backup.guard].status='Closed';
+  }
+  for(const [id,offer] of Object.entries(r.offers)){
+    if(activeOffer(offer)||offer.status==='Volunteered')affected.add(Number(id));
+  }
+  closeOffers(r);
+  for(const swap of data.swaps.filter(s=>s.shift===r.id&&s.status==='Pending')){
+    if(swap.target)affected.add(swap.target);
+    swap.status='Declined';
+  }
+  r.assignments=[];
+  r.need=0;
+  r.supervisors=0;
+  r.escalated=false;
+  delete r.followUp;
+  delete r.arrivalFollowUp;
+  recordEvent(r,'Request cancelled');
+  for(const guard of affected)recordEvent(r,'Request cancelled by dispatch',guard);
+  audit(view.contact+' cancelled request #'+r.id+' at '+siteBy(r.site).name+'.');
+  return 'Request cancelled. Assignments and offers were closed.';
+}
+
 const adminActions={
+  'cancel-request':cancelRequest,
   wave:r=>sendWave(r),
   broadcast:r=>sendWave(r,true),
   'activate-backup':activateBackup,
@@ -603,7 +635,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,cancelledAt:r.cancelledAt,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened','Request cancelled'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:r.cancelledAt?'Cancelled':!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -643,12 +675,12 @@ function project(snapshot,account) {
     id:s.id,start:byId(s.shift).start,status:s.status,incoming:s.target===g.id,accepted:s.accepted,claimedFromPool:s.claimedFromPool,
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
-  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave','Request cancelled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:e.status==='Request cancelled by dispatch'&&!r.cancelledBooking?.assignments.some(a=>a.guard===g.id)?siteBy(r.site).area:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
   const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
-const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+const requestActions=new Set(['cancel-request','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
   if(command.revision===revision||command.action==='create-request')return true;
@@ -831,7 +863,7 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancel-request','cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }

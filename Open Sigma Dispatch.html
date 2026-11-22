@@ -16,7 +16,7 @@
     .login-card{margin:clamp(18px,9vh,90px) auto 0;width:min(100%,460px);padding:clamp(20px,5vw,40px)}
     .login-card h1{margin-bottom:24px}.login-form{display:grid;gap:10px}.login-form .button{margin-top:8px}.login-form input,.login-form .button{min-height:46px}.login-form #login-role:empty{display:none}
     .guard-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}.guard-tabs button{min-height:48px;background:white;border:1px solid #bfd2d4;border-radius:9px;color:#25414b;font-weight:650;padding:7px}.guard-tabs button[aria-pressed=true]{background:#e0f7f0;color:#12463e;border-color:#54a894}
-    .rush-banner{background:#fff4ed;border:1px solid #df9d85;border-radius:12px;padding:12px 14px;margin-bottom:18px;color:#662c20;display:grid;gap:6px}.countdown{font-variant-numeric:tabular-nums;font-weight:750}.offer-actions .button{min-height:44px}.check-in{margin:9px 0 0}
+    .rush-banner{background:#fff4ed;border:1px solid #df9d85;border-radius:12px;padding:12px 14px;color:#662c20;display:grid;gap:6px}.countdown{font-variant-numeric:tabular-nums;font-weight:750}.offer-actions .button{min-height:44px}.check-in{margin:9px 0 0}
     .preference-form{display:grid;gap:12px;margin-top:12px}.preference-form fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.preference-form legend{font-weight:650}.preference-form input[type=number]{max-width:180px}.choice{min-height:42px;display:inline-flex;align-items:center;gap:6px;padding:4px;font-weight:600}
     .chat-trigger{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:5;min-height:46px;border-radius:50px;padding-inline:18px}.chat-drawer{position:fixed;z-index:4;bottom:calc(75px + env(safe-area-inset-bottom));right:16px;width:min(420px,calc(100% - 32px));max-height:min(70dvh,640px);display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 35px #11243a33}.chat-messages{overflow:auto;min-height:70px;flex:1;display:flex;flex-direction:column;gap:8px}.chat-line{background:#eff5f4;border-radius:8px;padding:9px;overflow-wrap:anywhere}.chat-line.you{background:#dff4eb;align-self:flex-end}.chat-line p+.button{margin-top:8px}.chat-suggestions{display:flex;gap:5px;overflow:auto}.chat-suggestions button{flex:none}#chat-form input{flex:1;min-width:0}#chat-form{flex-wrap:nowrap}
     @media(max-width:570px){.guard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.rush-banner .offer-actions .button{flex:1}.chat-drawer{padding:12px}.shell:has(+ #chat .chat-trigger){padding-bottom:84px}}
@@ -54,6 +54,11 @@ body:has(.guard-tabs) .chat-trigger{bottom:calc(76px + env(safe-area-inset-botto
     .calendar-scalable .days button{min-height:calc(44px * var(--calendar-scale))}
     .calendar-scalable .week-shift{min-width:calc(9.5rem * var(--calendar-scale))}
 
+    .staffing-alerts{margin-bottom:14px}
+    .staffing-alerts .stack{margin:10px 0}
+    .schedule-alert-list{max-height:24rem;overflow:auto;padding:4px}
+    .staffing-offer{background:#f4f7fa;border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px}
+    .dispatch-tools>summary{cursor:pointer;font-weight:700;margin-bottom:10px}
     .urgent-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:#9e3029;color:white;border-bottom:2px solid #77241f}
     .urgent-content{width:min(1320px,calc(100% - 28px));margin:auto;padding:8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap}
     .urgent-content p{font-weight:700}
@@ -261,6 +266,7 @@ function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
   const reasons=[];
+  if(r.cancelledAt)return ['Request cancelled'];
   if(!forSwap&&g.tier<2&&open(r)>0&&gap(r)>=open(r))reasons.push('Supervisor post required');
   if(r.force&&(g.id-3000)%6===0)reasons.push('MORB / use-of-force record missing');
   if(r.vehicle&&(g.id-3000)%3!==1)reasons.push('Vehicle authorization missing');
@@ -592,7 +598,38 @@ function openRequest(r) {
   view.checked.clear();
 }
 
+function cancelRequest(r) {
+  insist(!r.cancelledAt&&r.need>0&&r.start>data.now,'Only upcoming requests can be cancelled.');
+  r.cancelledAt=data.now;
+  r.cancelledBooking={need:r.need,supervisors:r.supervisors||0,assignments:r.assignments};
+  const affected=new Set(r.assignments.map(a=>a.guard));
+  if(['Invited','Ready'].includes(r.backup?.status)){
+    affected.add(r.backup.guard);
+    r.backup.status='Released';
+    if(r.offers[r.backup.guard]?.status==='Standby')r.offers[r.backup.guard].status='Closed';
+  }
+  for(const [id,offer] of Object.entries(r.offers)){
+    if(activeOffer(offer)||offer.status==='Volunteered')affected.add(Number(id));
+  }
+  closeOffers(r);
+  for(const swap of data.swaps.filter(s=>s.shift===r.id&&s.status==='Pending')){
+    if(swap.target)affected.add(swap.target);
+    swap.status='Declined';
+  }
+  r.assignments=[];
+  r.need=0;
+  r.supervisors=0;
+  r.escalated=false;
+  delete r.followUp;
+  delete r.arrivalFollowUp;
+  recordEvent(r,'Request cancelled');
+  for(const guard of affected)recordEvent(r,'Request cancelled by dispatch',guard);
+  audit(view.contact+' cancelled request #'+r.id+' at '+siteBy(r.site).name+'.');
+  return 'Request cancelled. Assignments and offers were closed.';
+}
+
 const adminActions={
+  'cancel-request':cancelRequest,
   wave:r=>sendWave(r),
   broadcast:r=>sendWave(r,true),
   'activate-backup':activateBackup,
@@ -730,7 +767,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,cancelledAt:r.cancelledAt,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened','Request cancelled'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:r.cancelledAt?'Cancelled':!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -770,12 +807,12 @@ function project(snapshot,account) {
     id:s.id,start:byId(s.shift).start,status:s.status,incoming:s.target===g.id,accepted:s.accepted,claimedFromPool:s.claimedFromPool,
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
-  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave','Request cancelled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:e.status==='Request cancelled by dispatch'&&!r.cancelledBooking?.assignments.some(a=>a.guard===g.id)?siteBy(r.site).area:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
   const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
-const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+const requestActions=new Set(['cancel-request','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
   if(command.revision===revision||command.action==='create-request')return true;
@@ -958,7 +995,7 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancel-request','cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }
@@ -1192,6 +1229,7 @@ function eligibility(g,r,{forSwap=false}={}) {
   const site=siteBy(r.site);
   const remaining=Math.floor((r.start-data.now)/minute);
   const reasons=[];
+  if(r.cancelledAt)return ['Request cancelled'];
   if(!forSwap&&g.tier<2&&open(r)>0&&gap(r)>=open(r))reasons.push('Supervisor post required');
   if(r.force&&(g.id-3000)%6===0)reasons.push('MORB / use-of-force record missing');
   if(r.vehicle&&(g.id-3000)%3!==1)reasons.push('Vehicle authorization missing');
@@ -1523,7 +1561,38 @@ function openRequest(r) {
   view.checked.clear();
 }
 
+function cancelRequest(r) {
+  insist(!r.cancelledAt&&r.need>0&&r.start>data.now,'Only upcoming requests can be cancelled.');
+  r.cancelledAt=data.now;
+  r.cancelledBooking={need:r.need,supervisors:r.supervisors||0,assignments:r.assignments};
+  const affected=new Set(r.assignments.map(a=>a.guard));
+  if(['Invited','Ready'].includes(r.backup?.status)){
+    affected.add(r.backup.guard);
+    r.backup.status='Released';
+    if(r.offers[r.backup.guard]?.status==='Standby')r.offers[r.backup.guard].status='Closed';
+  }
+  for(const [id,offer] of Object.entries(r.offers)){
+    if(activeOffer(offer)||offer.status==='Volunteered')affected.add(Number(id));
+  }
+  closeOffers(r);
+  for(const swap of data.swaps.filter(s=>s.shift===r.id&&s.status==='Pending')){
+    if(swap.target)affected.add(swap.target);
+    swap.status='Declined';
+  }
+  r.assignments=[];
+  r.need=0;
+  r.supervisors=0;
+  r.escalated=false;
+  delete r.followUp;
+  delete r.arrivalFollowUp;
+  recordEvent(r,'Request cancelled');
+  for(const guard of affected)recordEvent(r,'Request cancelled by dispatch',guard);
+  audit(view.contact+' cancelled request #'+r.id+' at '+siteBy(r.site).name+'.');
+  return 'Request cancelled. Assignments and offers were closed.';
+}
+
 const adminActions={
+  'cancel-request':cancelRequest,
   wave:r=>sendWave(r),
   broadcast:r=>sendWave(r,true),
   'activate-backup':activateBackup,
@@ -1661,7 +1730,7 @@ function project(snapshot,account) {
     const clientSites=sites.filter(site=>site.client===account.client);
     const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
       const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
-      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+      return {id,version:r.version||0,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,cancelledAt:r.cancelledAt,receivedAt:r.history?.find(event=>event.status==='Received')?.at,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch','No-show reported','Recovery opened','Request cancelled'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),feedback:r.clientFeedback?{rating:r.clientFeedback.rating,at:r.clientFeedback.at}:null,dress:r.dress,source:r.source,progress:r.cancelledAt?'Cancelled':!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
     });
     return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
   }
@@ -1701,12 +1770,12 @@ function project(snapshot,account) {
     id:s.id,start:byId(s.shift).start,status:s.status,incoming:s.target===g.id,accepted:s.accepted,claimedFromPool:s.claimedFromPool,
     peer:guardBy(s.target===g.id?s.guard:s.target)?.name
   }));
-  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave','Request cancelled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:e.status==='Request cancelled by dispatch'&&!r.cancelledBooking?.assignments.some(a=>a.guard===g.id)?siteBy(r.site).area:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
   const state={now:data.now,notices,requests,companyAnnouncements,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
   return {state,catalog:{sites:[],clients:{},guards:[]}};
 }
 
-const requestActions=new Set(['wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
+const requestActions=new Set(['cancel-request','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel','choose-backup','supervisor-review','feedback','review-duty','call-note']);
 
 function canApplyCommand(snapshot,command,revision){
   if(command.revision===revision||command.action==='create-request')return true;
@@ -1889,7 +1958,7 @@ if(typeof module!=='undefined') module.exports={
       const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
       insist(Object.hasOwn(actions,action),'Unavailable action.');
       if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
-      if(['cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['cancel-request','cancelSupervisor','fast','wave','broadcast','no-show','verify-arrival','check-in','activate-backup','release-backup','standby-accept','standby-decline','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
       if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
       message=actions[action](shift,id,extra);
     }
@@ -1904,9 +1973,9 @@ const tag=(label,style='')=>`<span class="tag ${style}">${label}</span>`;
 const empty=(label)=>`<div class="empty">${label}</div>`;
 const option=(value,label,selected)=>`<option value="${safe(value)}"${value===selected?' selected':''}>${safe(label)}</option>`;
 const confirmedCount=r=>r.confirmed??r.assignments.length;
-const statusOf=(r)=>r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
+const statusOf=(r)=>r.cancelledAt?tag('Cancelled','rush'):r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
 const meter=(r)=>`<div class="progress" role="progressbar" aria-label="Confirmed guards" aria-valuenow="${confirmedCount(r)}" aria-valuemax="${r.need}"><div style="width:${r.need?100*confirmedCount(r)/r.need:0}%"></div></div>`;
-const coverage=(r)=>`${confirmedCount(r)} of ${r.need} confirmed`;
+const coverage=(r)=>r.cancelledAt?(r.cancelledBooking?.need?'Cancelled · '+r.cancelledBooking.need+' requested':'Cancelled'):`${confirmedCount(r)} of ${r.need} confirmed`;
 const requestsForClient=()=>data.requests.filter(r=>siteBy(r.site).client===view.client);
 
 function hero(role,title,description) {
@@ -1960,11 +2029,13 @@ function adminView() {
   const r=byId(view.selected);
   return `${hero('Administrator','Dispatch board','Review coverage, approve assignments, and manage schedule changes.')}
     <div class="stats secondary-metrics">${metrics.map(([label,value])=>`<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join('')}</div>
-    ${planPanel()}${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
-    <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div>${activityPanel()}</div></div>`;
+    <div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Requests</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}${option('cancelled','Cancelled',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section></div>
+    <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div></div></div>
+    <details class="card dispatch-tools" id="dispatch-tools"><summary>Calendar and dispatch tools</summary>${weekBoard()}${planPanel()}${changePanel()}${activityPanel()}</details>`;
 }
 
 function queueDecision(r){
+  if(r.cancelledAt)return 'Closed by dispatch';
   if(!r.need)return 'Rescheduled';
   if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 'Check missing arrivals · '+safe(r.arrivalFollowUpOwner||'Duty dispatcher');
   if(!open(r))return r.assignments.filter(a=>!a.ack).length+' briefs unread';
@@ -1977,7 +2048,7 @@ function queueDecision(r){
 }
 
 function dispatchPriority(r){
-  if(r.end<=data.now)return 0;
+  if(r.cancelledAt||r.end<=data.now)return 0;
   if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 6;
   if(r.recoveryOf&&open(r))return 5;
   if(open(r)&&!isPast(r)&&r.followUp?.due<=data.now)return 4;
@@ -1987,7 +2058,7 @@ function dispatchPriority(r){
 }
 function queueResults() {
   const list=data.requests.filter(r=>{
-    const statusMatches=view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&!open(r);
+    const statusMatches=r.cancelledAt?view.status==='all'||view.status==='cancelled':view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&r.need>0&&!open(r);
     return statusMatches&&siteBy(r.site).name.toLowerCase().includes(view.search.toLowerCase());
   }).sort((a,b)=>dispatchPriority(b)-dispatchPriority(a)||a.start-b.start);
   const pageSize=6;
@@ -1998,12 +2069,12 @@ function queueResults() {
 
 function requestPanel(r) {
   const site=siteBy(r.site);
+  if(r.cancelledAt)return `<section class="card"><div class="section-top"><h2>${safe(site.name)}</h2>${statusOf(r)}</div><p>${shiftTime(r)}</p><p class="sub">Cancelled by dispatch · ${formatDay(r.cancelledAt)} · ${formatTime(r.cancelledAt)}</p><p class="sub">${r.cancelledBooking.need} requested · ${r.cancelledBooking.assignments.length} assignments released</p></section>`;
   const remaining=Math.floor((r.start-data.now)/minute);
   const pool=availableForWave(r);
   if(gap(r))pool.sort((a,b)=>Number(b.tier===2)-Number(a.tier===2));
   const preferred=pool.filter(g=>preferenceMatches(g,r,scheduleCheck(g,r).projected)).length;
   const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered');
-  const sent=Object.values(r.offers).filter(o=>o.expires).length;
   const invited=Object.values(r.offers).filter(activeOffer).length;
   const selected=volunteers.filter(g=>view.checked.has(g.id));
   const unread=r.assignments.filter(a=>!a.ack).length;
@@ -2013,19 +2084,19 @@ function requestPanel(r) {
   const reviewable=volunteers.filter(g=>!eligibility(g,r).length);
   const headline=r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn)?'Verify missing arrivals':!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
   const blocker=r.escalated?(r.followUp?'Follow-up owned by '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':'due by '+formatTime(r.followUp.due)):'Manual follow-up flagged · owner needed.'):!open(r)?'Coverage complete. Confirmed guards can see site instructions.':isPast(r)?'Shift started with unfilled positions.':!pool.length&&!invited&&!volunteers.length?'No eligible replies or new guards. Take follow-up.':'';
-  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
-  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged · ${r.assignments.filter(a=>a.checkIn).length} checked in</span></div>${meter(r)}
+  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div>${!isPast(r)&&r.need?button('Cancel request','cancel-request',r.id,'','danger'):''}</div>
+  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${[open(r)?open(r)+' open':'',gap(r)?gap(r)+' supervisor needed':'',invited?invited+' awaiting reply':'',r.assignments.length?(r.assignments.length-unread)+'/'+r.assignments.length+' briefs acknowledged':''].filter(Boolean).join(' · ')}</span></div>${meter(r)}
   ${r.force||r.vehicle?tag([r.force?'Use-of-force check':'',r.vehicle?'Vehicle / key / lockbox check':''].filter(Boolean).join(' · '),'warn'):''}${blocker?`<p class="sub">${blocker}</p>`:''}
   ${r.replacement&&gap(r)&&!isPast(r)?`<p class="sub">${gap(r)===1?'A replacement supervisor is required.':`${gap(r)} replacement supervisors are required.`}</p>`:''}
   <div class="actions form-actions">${reviewable.length?button('Review volunteers','jump-review',r.id,'','primary'):!open(r)&&unread?button('Check unread briefs','jump-briefs',r.id,'','primary'):''}${open(r)&&!isPast(r)&&pool.length?button(r.rush?'Send offer wave':'Send regular offers','wave',r.id,'',reviewable.length||invited?'':'primary'):''}${open(r)&&r.followUp?.owner!==account.name?button(r.followUp?'Take over follow-up':'Take follow-up','escalate',r.id):''}</div>
    ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id,o])=>tag(guardBy(id).name+' · '+id+' · '+phoneOfferStatus(r,Number(id),o))).join('')+'</div></details>':''}
-  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by guard record after travel eligibility checks.':'Ranked by guard record, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
-  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
+  ${volunteers.length?`<hr class="divider"><div class="section-top"><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
+  <div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
     const reasons=eligibility(g,r);
     const {projected,ot}=scheduleCheck(g,r);
     const matches=preferenceMatches(g,r,projected);
     return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${offerFor(r,g)?.arrivalAt?' · Latest ETA projects '+formatTime(data.now+offerFor(r,g).arrivalAt-offerFor(r,g).at):''} ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${rankDetails(g,r)}</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
-  }).join('')}</tbody></table></div>`:empty('Responses will appear here for administrator approval.')}
+  }).join('')}</tbody></table></div>`:''}
   ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
   ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
   ${!a.checkIn&&r.end>data.now&&r.start-data.now<=15*minute?button('Verify arrival','verify-arrival',r.id,a.guard):''}
@@ -2050,16 +2121,16 @@ function activityPanel() {
 }
 
 function clientView() {
-  const list=requestsForClient().sort((a,b)=>Number(b.end>data.now)-Number(a.end>data.now)||Number(b.confirmed<b.need)-Number(a.confirmed<a.need)||a.start-b.start);
+  const list=requestsForClient().sort((a,b)=>Number(b.end>data.now)-Number(a.end>data.now)||Number(b.confirmed<b.need)-Number(a.confirmed<a.need)||Number(Boolean(a.cancelledAt))-Number(Boolean(b.cancelledAt))||a.start-b.start);
   const f=view.prefill;
   const visibleSites=sites.filter(s=>s.client===view.client);
   return `${hero('Client','Request coverage','Submit coverage needs and track confirmations for your sites.')}
-  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
+  <div class="grid equal client-grid"><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
   <details class="details"><summary>Paste fictional client email</summary><textarea id="email" rows="3" aria-label="Client email" placeholder="Need 10 extra guards at Maple in two hours for 4 hours"></textarea> ${button("Extract draft","extract")}</details><form id="create-request"><div class="fields"><label class="full">Site<select name="site" required>${visibleSites.map(s=>option(s.id,s.name,f.site)).join('')}</select></label>
   <label>Start date<input type="date" name="date" min="${inputDate(data.now)}" value="${inputDate(data.now+2*hour)}" required></label><label>Start time<input type="time" name="time" value="${inputTime(data.now+2*hour)}" required></label>
   <label>Duration (hours)<input type="number" name="hours" min="0.5" max="24" step="0.5" value="${f.hours??4}" required></label><label>Guards needed<input type="number" name="count" min="1" max="120" value="${f.count??1}" required></label>
   <details class="full" id="specialist-fields"><summary>Specialist staffing and priority</summary><div class="fields"><label>Supervisor posts included<input name="supervisors" type="number" min="0" value="${f.supervisors||0}" required></label><label>Special requirements<span><input type="checkbox" name="force" ${f.force?'checked':''}> Use of force / MORB</span><span><input type="checkbox" name="vehicle" ${f.vehicle?'checked':''}> Vehicle / lockbox</span></label><label>Minimum tier<select name="tier">${tiers.map((tier,i)=>option(i,tier,f.tier??0)).join('')}</select></label><label>Priority<select name="rush">${option('regular','Regular',f.rush)}${option('urgent','Urgent',f.rush)}</select></label></div></details>
-  <label>Request channel<select name="source"><option>Portal</option><option>Email</option><option>Phone</option></select></label><label>Dress code<input name="dress" maxlength="160" value="${safe(f.dress||'')}"></label><label class="full">Site instructions<textarea name="notes" rows="2" maxlength="400" placeholder="Use fictional details only">${safe(f.notes)}</textarea></label></div><p id="priority-note" class="sub" aria-live="polite"></p><button class="button primary">Submit request</button>${view.template?' '+button('Clear template','clear-template'):''}</form></details>
+  <label>Request channel<select name="source"><option>Portal</option><option>Email</option><option>Phone</option></select></label><label>Dress code<input name="dress" maxlength="160" value="${safe(f.dress||'')}"></label><label class="full">Site instructions<textarea name="notes" rows="2" maxlength="400" placeholder="Use fictional details only">${safe(f.notes)}</textarea></label></div><p id="priority-note" class="sub" aria-live="polite"></p><button class="button primary">Submit request</button>${view.template?' '+button('Clear template','clear-template'):''}</form></details><section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${r.cancelledAt?'':meter(r)}${r.cancelledAt?'':`<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p>`}<div class="row small">${r.cancelledAt?'':`<strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>`}${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section>
 </div>`;
 }
 
@@ -2114,7 +2185,8 @@ document.addEventListener('click',event=>{
     extractEmailDraft(document.querySelector('#email').value,document.querySelector('#create-request').elements);
     return;
   }
-  if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();return;}
+  if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();document.querySelector('#dispatch-tools').open=true;return;}
+  if(action==='cancel-request'&&!confirm('Cancel this entire request? All assignments, outstanding offers, and standby coverage will be released.'))return;
   if(action==='cancel'&&!confirm('Remove this assignment and reopen the post?'))return;
   if(action==='approve-plan'){
     const plan=view.displayedPlan||[];
@@ -2290,6 +2362,10 @@ async function submitAction(action,id='',extra='',fields={}) {
     install(result);
     if(action==='no-show'||action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
     if(action==='create-request'){view.template=null;view.prefill={};}
+    if(action==='cancel-request'){
+      view.page=0;
+      if(!['all','cancelled'].includes(view.status))view.status='cancelled';
+    }
     view.checked=new Set(result.checked);
     render();
     announce(result.message);
@@ -2503,10 +2579,10 @@ const guardStaffingOffers=()=>[...guardRushAlerts(),...guardOpenShifts().filter(
 const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
-  const rush=guardRushAlerts();
-  return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
+  return `${attendanceScanPanel()}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
+    ${view.guardTab==='shifts'?staffingAlertsPanel():''}
     ${({shifts:guardSchedule,open:guardAdditionalShifts,hours:guardHours,leave:guardLeave})[view.guardTab]()}`;
 }
 
@@ -2521,14 +2597,21 @@ function rushDeadline(r) {
     ? `<span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span>`
     : tag('Open rush shift','rush');
 }
-function rushBanner(r,count) {
+function staffingAlertsPanel(offers=guardStaffingOffers()) {
+  if(!offers.length)return '';
+  return `<section class="card staffing-alerts" aria-labelledby="staffing-alerts-title">
+    <h2 id="staffing-alerts-title">Staffing offers <span class="tag">${offers.length}</span></h2>
+    <div class="stack ${view.guardTab==='shifts'?'schedule-alert-list':''}">${offers.map(staffingOfferCard).join('')}</div>
+    <p class="small muted">Site details become available after dispatch approval.</p>
+  </section>`;
+}
+function staffingOfferCard(r) {
   const {area,uniform}=r.location;
-  return `<aside class="rush-banner" aria-label="Rush shift offer">
-    <div class="row"><strong>Rush shift · ${safe(area)}</strong>${rushDeadline(r)}</div>
+  return `<article class="${r.rush?'rush-banner':'staffing-offer'}" data-staffing-request="${r.id}">
+    <div class="row"><strong>${r.rush?'Rush shift':'Open shift'} · ${safe(area)}</strong>${r.rush?rushDeadline(r):''}</div>
     <p>${shiftTime(r)} · ${safe(uniform)} · ${r.eta} min ETA</p>
-    <p class="small">Site name and instructions appear after approval.${count>1?' More offers in Offers &amp; swaps.':''}</p>
     ${offerActions(r)}
-  </aside>`;
+  </article>`;
 }
 function updateRushCountdown() {
   for(const el of document.querySelectorAll('[data-reply-deadline]')){
@@ -2536,7 +2619,7 @@ function updateRushCountdown() {
     const real=Number(el.dataset.replyDeadline)?Number(el.dataset.replyDeadline)-Date.now():simulated;
     const seconds=Math.max(0,Math.ceil(Math.min(real,simulated)/1000));
     el.textContent=seconds?'Reply in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'Reply window closed';
-    if(!seconds)for(const btn of el.closest('.rush-banner, .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
+    if(!seconds)for(const btn of el.closest('[data-staffing-request], .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
   }
   signalStaffingAlerts();
 }
@@ -2594,7 +2677,7 @@ function guardSchedule() {
   return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p>${r.rush?button('Update arrival estimate','volunteer',r.id,'refresh-eta'):''}</section>`).join('')}
     ${data.requests.filter(r=>r.backup).map(r=>`<section class="card"><h2>Standby · ${safe(r.location.area)}</h2><p>${shiftTime(r)} · ${safe(r.backup.post)}</p><p>${r.backup.status==='Ready'?'On standby. Wait for dispatch approval before travelling.':'Can you cover this shift if needed?'}</p><div class="actions">${r.backup.status==='Invited'?button('Accept standby','standby-accept',r.id,'','primary'):''}${button(r.backup.status==='Ready'?'Withdraw standby':'Decline standby','standby-decline',r.id)}</div></section>`).join('')}
     ${supervisorCrewPanel()}
-    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
+    ${data.notices?.length?`<details class="card" id="assignment-changes" ${data.notices.some(n=>n.status==='Request cancelled by dispatch'&&data.now-n.at<15*minute)?'open':''}><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
     <section class="card schedule-card"><div class="section-top"><h2>Assignments</h2><div class="segments" aria-label="Schedule view">${['Agenda','Month'].map(mode=>`<button type="button" data-schedule-mode="${mode}" aria-pressed="${(view.scheduleMode||'Agenda')===mode}">${mode}</button>`).join('')}</div></div>
     ${view.scheduleMode==='Month'?monthCalendar(calendarRequests):''}
     ${visible.length?visible.map((r,index)=>{
@@ -2627,16 +2710,15 @@ function regularOfferCard(r) {
   return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
-  const regular=guardOpenShifts().filter(r=>!r.rush);
-  const otherRush=guardRushAlerts().slice(1);
+  const staffing=guardStaffingOffers();
+  const staffingIds=new Set(staffing.map(r=>r.id));
+  const regular=guardOpenShifts().filter(r=>!staffingIds.has(r.id));
   const waiting=data.requests.filter(r=>r.offer?.status==='Volunteered');
-  return `<section class="card"><h2>Open shifts and swap pool</h2>
-    <p class="sub">Site name and instructions appear after approval.</p>
-    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong>${rushDeadline(r)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
+  return `${staffingAlertsPanel(staffing)}<section class="card"><h2>Other shifts and swaps</h2>
     ${regular.map(regularOfferCard).join('')}
     ${data.poolSwaps.map(s=>`<article class="entry"><strong>${safe(s.location.area)} · Swap pool</strong><p class="sub">${shiftTime(s)} · ${safe(s.location.uniform)}</p>${button('Claim pool swap','claim',s.id,'','primary')}</article>`).join('')}
     ${waiting.map(r=>`<article class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${tag('Awaiting admin approval','warn')}</div><p class="sub">${shiftTime(r)}</p></article>`).join('')}
-    ${!(regular.length||otherRush.length||waiting.length||data.poolSwaps.length)?empty('Eligible regular shifts and peer swaps will appear here.'):''}
+    ${!(regular.length||waiting.length||data.poolSwaps.length)?empty('Eligible regular shifts and peer swaps will appear here.'):''}
     </section>`;
 }
 function choices(values,selected,name) {

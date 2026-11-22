@@ -10,10 +10,10 @@ const guardStaffingOffers=()=>[...guardRushAlerts(),...guardOpenShifts().filter(
 const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
 
 function guardView() {
-  const rush=guardRushAlerts();
-  return `${attendanceScanPanel()}${rush.length?rushBanner(rush[0],rush.length):''}
+  return `${attendanceScanPanel()}
     <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
     <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
+    ${view.guardTab==='shifts'?staffingAlertsPanel():''}
     ${({shifts:guardSchedule,open:guardAdditionalShifts,hours:guardHours,leave:guardLeave})[view.guardTab]()}`;
 }
 
@@ -28,14 +28,21 @@ function rushDeadline(r) {
     ? `<span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span>`
     : tag('Open rush shift','rush');
 }
-function rushBanner(r,count) {
+function staffingAlertsPanel(offers=guardStaffingOffers()) {
+  if(!offers.length)return '';
+  return `<section class="card staffing-alerts" aria-labelledby="staffing-alerts-title">
+    <h2 id="staffing-alerts-title">Staffing offers <span class="tag">${offers.length}</span></h2>
+    <div class="stack ${view.guardTab==='shifts'?'schedule-alert-list':''}">${offers.map(staffingOfferCard).join('')}</div>
+    <p class="small muted">Site details become available after dispatch approval.</p>
+  </section>`;
+}
+function staffingOfferCard(r) {
   const {area,uniform}=r.location;
-  return `<aside class="rush-banner" aria-label="Rush shift offer">
-    <div class="row"><strong>Rush shift · ${safe(area)}</strong>${rushDeadline(r)}</div>
+  return `<article class="${r.rush?'rush-banner':'staffing-offer'}" data-staffing-request="${r.id}">
+    <div class="row"><strong>${r.rush?'Rush shift':'Open shift'} · ${safe(area)}</strong>${r.rush?rushDeadline(r):''}</div>
     <p>${shiftTime(r)} · ${safe(uniform)} · ${r.eta} min ETA</p>
-    <p class="small">Site name and instructions appear after approval.${count>1?' More offers in Offers &amp; swaps.':''}</p>
     ${offerActions(r)}
-  </aside>`;
+  </article>`;
 }
 function updateRushCountdown() {
   for(const el of document.querySelectorAll('[data-reply-deadline]')){
@@ -43,7 +50,7 @@ function updateRushCountdown() {
     const real=Number(el.dataset.replyDeadline)?Number(el.dataset.replyDeadline)-Date.now():simulated;
     const seconds=Math.max(0,Math.ceil(Math.min(real,simulated)/1000));
     el.textContent=seconds?'Reply in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'Reply window closed';
-    if(!seconds)for(const btn of el.closest('.rush-banner, .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
+    if(!seconds)for(const btn of el.closest('[data-staffing-request], .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
   }
   signalStaffingAlerts();
 }
@@ -101,7 +108,7 @@ function guardSchedule() {
   return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p>${r.rush?button('Update arrival estimate','volunteer',r.id,'refresh-eta'):''}</section>`).join('')}
     ${data.requests.filter(r=>r.backup).map(r=>`<section class="card"><h2>Standby · ${safe(r.location.area)}</h2><p>${shiftTime(r)} · ${safe(r.backup.post)}</p><p>${r.backup.status==='Ready'?'On standby. Wait for dispatch approval before travelling.':'Can you cover this shift if needed?'}</p><div class="actions">${r.backup.status==='Invited'?button('Accept standby','standby-accept',r.id,'','primary'):''}${button(r.backup.status==='Ready'?'Withdraw standby':'Decline standby','standby-decline',r.id)}</div></section>`).join('')}
     ${supervisorCrewPanel()}
-    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
+    ${data.notices?.length?`<details class="card" id="assignment-changes" ${data.notices.some(n=>n.status==='Request cancelled by dispatch'&&data.now-n.at<15*minute)?'open':''}><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} · ${formatDay(n.start)} ${formatTime(n.start)} · ${safe(n.status)}</p>`).join('')}</details>`:''}
     <section class="card schedule-card"><div class="section-top"><h2>Assignments</h2><div class="segments" aria-label="Schedule view">${['Agenda','Month'].map(mode=>`<button type="button" data-schedule-mode="${mode}" aria-pressed="${(view.scheduleMode||'Agenda')===mode}">${mode}</button>`).join('')}</div></div>
     ${view.scheduleMode==='Month'?monthCalendar(calendarRequests):''}
     ${visible.length?visible.map((r,index)=>{
@@ -134,16 +141,15 @@ function regularOfferCard(r) {
   return `<article class="entry"><strong>${r.rush?'Rush · ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
 }
 function guardAdditionalShifts() {
-  const regular=guardOpenShifts().filter(r=>!r.rush);
-  const otherRush=guardRushAlerts().slice(1);
+  const staffing=guardStaffingOffers();
+  const staffingIds=new Set(staffing.map(r=>r.id));
+  const regular=guardOpenShifts().filter(r=>!staffingIds.has(r.id));
   const waiting=data.requests.filter(r=>r.offer?.status==='Volunteered');
-  return `<section class="card"><h2>Open shifts and swap pool</h2>
-    <p class="sub">Site name and instructions appear after approval.</p>
-    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong>${rushDeadline(r)}</div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
+  return `${staffingAlertsPanel(staffing)}<section class="card"><h2>Other shifts and swaps</h2>
     ${regular.map(regularOfferCard).join('')}
     ${data.poolSwaps.map(s=>`<article class="entry"><strong>${safe(s.location.area)} · Swap pool</strong><p class="sub">${shiftTime(s)} · ${safe(s.location.uniform)}</p>${button('Claim pool swap','claim',s.id,'','primary')}</article>`).join('')}
     ${waiting.map(r=>`<article class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${tag('Awaiting admin approval','warn')}</div><p class="sub">${shiftTime(r)}</p></article>`).join('')}
-    ${!(regular.length||otherRush.length||waiting.length||data.poolSwaps.length)?empty('Eligible regular shifts and peer swaps will appear here.'):''}
+    ${!(regular.length||waiting.length||data.poolSwaps.length)?empty('Eligible regular shifts and peer swaps will appear here.'):''}
     </section>`;
 }
 function choices(values,selected,name) {

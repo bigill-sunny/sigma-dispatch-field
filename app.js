@@ -3,9 +3,9 @@ const tag=(label,style='')=>`<span class="tag ${style}">${label}</span>`;
 const empty=(label)=>`<div class="empty">${label}</div>`;
 const option=(value,label,selected)=>`<option value="${safe(value)}"${value===selected?' selected':''}>${safe(label)}</option>`;
 const confirmedCount=r=>r.confirmed??r.assignments.length;
-const statusOf=(r)=>r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
+const statusOf=(r)=>r.cancelledAt?tag('Cancelled','rush'):r.arrivalFollowUp&&r.assignments?.some(a=>!a.checkIn)?tag('Arrival unverified','warn'):r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
 const meter=(r)=>`<div class="progress" role="progressbar" aria-label="Confirmed guards" aria-valuenow="${confirmedCount(r)}" aria-valuemax="${r.need}"><div style="width:${r.need?100*confirmedCount(r)/r.need:0}%"></div></div>`;
-const coverage=(r)=>`${confirmedCount(r)} of ${r.need} confirmed`;
+const coverage=(r)=>r.cancelledAt?(r.cancelledBooking?.need?'Cancelled · '+r.cancelledBooking.need+' requested':'Cancelled'):`${confirmedCount(r)} of ${r.need} confirmed`;
 const requestsForClient=()=>data.requests.filter(r=>siteBy(r.site).client===view.client);
 
 function hero(role,title,description) {
@@ -59,11 +59,13 @@ function adminView() {
   const r=byId(view.selected);
   return `${hero('Administrator','Dispatch board','Review coverage, approve assignments, and manage schedule changes.')}
     <div class="stats secondary-metrics">${metrics.map(([label,value])=>`<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join('')}</div>
-    ${planPanel()}${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
-    <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div>${activityPanel()}</div></div>`;
+    <div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Requests</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}${option('cancelled','Cancelled',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section></div>
+    <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div></div></div>
+    <details class="card dispatch-tools" id="dispatch-tools"><summary>Calendar and dispatch tools</summary>${weekBoard()}${planPanel()}${changePanel()}${activityPanel()}</details>`;
 }
 
 function queueDecision(r){
+  if(r.cancelledAt)return 'Closed by dispatch';
   if(!r.need)return 'Rescheduled';
   if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 'Check missing arrivals · '+safe(r.arrivalFollowUpOwner||'Duty dispatcher');
   if(!open(r))return r.assignments.filter(a=>!a.ack).length+' briefs unread';
@@ -76,7 +78,7 @@ function queueDecision(r){
 }
 
 function dispatchPriority(r){
-  if(r.end<=data.now)return 0;
+  if(r.cancelledAt||r.end<=data.now)return 0;
   if(r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn))return 6;
   if(r.recoveryOf&&open(r))return 5;
   if(open(r)&&!isPast(r)&&r.followUp?.due<=data.now)return 4;
@@ -86,7 +88,7 @@ function dispatchPriority(r){
 }
 function queueResults() {
   const list=data.requests.filter(r=>{
-    const statusMatches=view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&!open(r);
+    const statusMatches=r.cancelledAt?view.status==='all'||view.status==='cancelled':view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&r.need>0&&!open(r);
     return statusMatches&&siteBy(r.site).name.toLowerCase().includes(view.search.toLowerCase());
   }).sort((a,b)=>dispatchPriority(b)-dispatchPriority(a)||a.start-b.start);
   const pageSize=6;
@@ -97,12 +99,12 @@ function queueResults() {
 
 function requestPanel(r) {
   const site=siteBy(r.site);
+  if(r.cancelledAt)return `<section class="card"><div class="section-top"><h2>${safe(site.name)}</h2>${statusOf(r)}</div><p>${shiftTime(r)}</p><p class="sub">Cancelled by dispatch · ${formatDay(r.cancelledAt)} · ${formatTime(r.cancelledAt)}</p><p class="sub">${r.cancelledBooking.need} requested · ${r.cancelledBooking.assignments.length} assignments released</p></section>`;
   const remaining=Math.floor((r.start-data.now)/minute);
   const pool=availableForWave(r);
   if(gap(r))pool.sort((a,b)=>Number(b.tier===2)-Number(a.tier===2));
   const preferred=pool.filter(g=>preferenceMatches(g,r,scheduleCheck(g,r).projected)).length;
   const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered');
-  const sent=Object.values(r.offers).filter(o=>o.expires).length;
   const invited=Object.values(r.offers).filter(activeOffer).length;
   const selected=volunteers.filter(g=>view.checked.has(g.id));
   const unread=r.assignments.filter(a=>!a.ack).length;
@@ -112,19 +114,19 @@ function requestPanel(r) {
   const reviewable=volunteers.filter(g=>!eligibility(g,r).length);
   const headline=r.arrivalFollowUp&&r.assignments.some(a=>!a.checkIn)?'Verify missing arrivals':!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
   const blocker=r.escalated?(r.followUp?'Follow-up owned by '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':'due by '+formatTime(r.followUp.due)):'Manual follow-up flagged · owner needed.'):!open(r)?'Coverage complete. Confirmed guards can see site instructions.':isPast(r)?'Shift started with unfilled positions.':!pool.length&&!invited&&!volunteers.length?'No eligible replies or new guards. Take follow-up.':'';
-  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
-  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged · ${r.assignments.filter(a=>a.checkIn).length} checked in</span></div>${meter(r)}
+  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.recoveryOf?`<p class="sub">No-show recovery · Original request #${r.recoveryOf}</p>`:''}${r.dress?`<p class="sub">Dress code · ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div>${!isPast(r)&&r.need?button('Cancel request','cancel-request',r.id,'','danger'):''}</div>
+  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${[open(r)?open(r)+' open':'',gap(r)?gap(r)+' supervisor needed':'',invited?invited+' awaiting reply':'',r.assignments.length?(r.assignments.length-unread)+'/'+r.assignments.length+' briefs acknowledged':''].filter(Boolean).join(' · ')}</span></div>${meter(r)}
   ${r.force||r.vehicle?tag([r.force?'Use-of-force check':'',r.vehicle?'Vehicle / key / lockbox check':''].filter(Boolean).join(' · '),'warn'):''}${blocker?`<p class="sub">${blocker}</p>`:''}
   ${r.replacement&&gap(r)&&!isPast(r)?`<p class="sub">${gap(r)===1?'A replacement supervisor is required.':`${gap(r)} replacement supervisors are required.`}</p>`:''}
   <div class="actions form-actions">${reviewable.length?button('Review volunteers','jump-review',r.id,'','primary'):!open(r)&&unread?button('Check unread briefs','jump-briefs',r.id,'','primary'):''}${open(r)&&!isPast(r)&&pool.length?button(r.rush?'Send offer wave':'Send regular offers','wave',r.id,'',reviewable.length||invited?'':'primary'):''}${open(r)&&r.followUp?.owner!==account.name?button(r.followUp?'Take over follow-up':'Take follow-up','escalate',r.id):''}</div>
    ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id,o])=>tag(guardBy(id).name+' · '+id+' · '+phoneOfferStatus(r,Number(id),o))).join('')+'</div></details>':''}
-  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by guard record after travel eligibility checks.':'Ranked by guard record, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
-  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
+  ${volunteers.length?`<hr class="divider"><div class="section-top"><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
+  <div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Guard record</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
     const reasons=eligibility(g,r);
     const {projected,ot}=scheduleCheck(g,r);
     const matches=preferenceMatches(g,r,projected);
     return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${offerFor(r,g)?.arrivalAt?' · Latest ETA projects '+formatTime(data.now+offerFor(r,g).arrivalAt-offerFor(r,g).at):''} ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${rankDetails(g,r)}</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
-  }).join('')}</tbody></table></div>`:empty('Responses will appear here for administrator approval.')}
+  }).join('')}</tbody></table></div>`:''}
   ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
   ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
   ${!a.checkIn&&r.end>data.now&&r.start-data.now<=15*minute?button('Verify arrival','verify-arrival',r.id,a.guard):''}
@@ -149,16 +151,16 @@ function activityPanel() {
 }
 
 function clientView() {
-  const list=requestsForClient().sort((a,b)=>Number(b.end>data.now)-Number(a.end>data.now)||Number(b.confirmed<b.need)-Number(a.confirmed<a.need)||a.start-b.start);
+  const list=requestsForClient().sort((a,b)=>Number(b.end>data.now)-Number(a.end>data.now)||Number(b.confirmed<b.need)-Number(a.confirmed<a.need)||Number(Boolean(a.cancelledAt))-Number(Boolean(b.cancelledAt))||a.start-b.start);
   const f=view.prefill;
   const visibleSites=sites.filter(s=>s.client===view.client);
   return `${hero('Client','Request coverage','Submit coverage needs and track confirmations for your sites.')}
-  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
+  <div class="grid equal client-grid"><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
   <details class="details"><summary>Paste fictional client email</summary><textarea id="email" rows="3" aria-label="Client email" placeholder="Need 10 extra guards at Maple in two hours for 4 hours"></textarea> ${button("Extract draft","extract")}</details><form id="create-request"><div class="fields"><label class="full">Site<select name="site" required>${visibleSites.map(s=>option(s.id,s.name,f.site)).join('')}</select></label>
   <label>Start date<input type="date" name="date" min="${inputDate(data.now)}" value="${inputDate(data.now+2*hour)}" required></label><label>Start time<input type="time" name="time" value="${inputTime(data.now+2*hour)}" required></label>
   <label>Duration (hours)<input type="number" name="hours" min="0.5" max="24" step="0.5" value="${f.hours??4}" required></label><label>Guards needed<input type="number" name="count" min="1" max="120" value="${f.count??1}" required></label>
   <details class="full" id="specialist-fields"><summary>Specialist staffing and priority</summary><div class="fields"><label>Supervisor posts included<input name="supervisors" type="number" min="0" value="${f.supervisors||0}" required></label><label>Special requirements<span><input type="checkbox" name="force" ${f.force?'checked':''}> Use of force / MORB</span><span><input type="checkbox" name="vehicle" ${f.vehicle?'checked':''}> Vehicle / lockbox</span></label><label>Minimum tier<select name="tier">${tiers.map((tier,i)=>option(i,tier,f.tier??0)).join('')}</select></label><label>Priority<select name="rush">${option('regular','Regular',f.rush)}${option('urgent','Urgent',f.rush)}</select></label></div></details>
-  <label>Request channel<select name="source"><option>Portal</option><option>Email</option><option>Phone</option></select></label><label>Dress code<input name="dress" maxlength="160" value="${safe(f.dress||'')}"></label><label class="full">Site instructions<textarea name="notes" rows="2" maxlength="400" placeholder="Use fictional details only">${safe(f.notes)}</textarea></label></div><p id="priority-note" class="sub" aria-live="polite"></p><button class="button primary">Submit request</button>${view.template?' '+button('Clear template','clear-template'):''}</form></details>
+  <label>Request channel<select name="source"><option>Portal</option><option>Email</option><option>Phone</option></select></label><label>Dress code<input name="dress" maxlength="160" value="${safe(f.dress||'')}"></label><label class="full">Site instructions<textarea name="notes" rows="2" maxlength="400" placeholder="Use fictional details only">${safe(f.notes)}</textarea></label></div><p id="priority-note" class="sub" aria-live="polite"></p><button class="button primary">Submit request</button>${view.template?' '+button('Clear template','clear-template'):''}</form></details><section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${r.cancelledAt?'':meter(r)}${r.cancelledAt?'':`<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p>`}<div class="row small">${r.cancelledAt?'':`<strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>`}${button('Repeat request','repeat',r.id)}</div>${feedbackPanel(r)}${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section>
 </div>`;
 }
 
@@ -213,7 +215,8 @@ document.addEventListener('click',event=>{
     extractEmailDraft(document.querySelector('#email').value,document.querySelector('#create-request').elements);
     return;
   }
-  if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();return;}
+  if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();document.querySelector('#dispatch-tools').open=true;return;}
+  if(action==='cancel-request'&&!confirm('Cancel this entire request? All assignments, outstanding offers, and standby coverage will be released.'))return;
   if(action==='cancel'&&!confirm('Remove this assignment and reopen the post?'))return;
   if(action==='approve-plan'){
     const plan=view.displayedPlan||[];
@@ -389,6 +392,10 @@ async function submitAction(action,id='',extra='',fields={}) {
     install(result);
     if(action==='no-show'||action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
     if(action==='create-request'){view.template=null;view.prefill={};}
+    if(action==='cancel-request'){
+      view.page=0;
+      if(!['all','cancelled'].includes(view.status))view.status='cancelled';
+    }
     view.checked=new Set(result.checked);
     render();
     announce(result.message);
