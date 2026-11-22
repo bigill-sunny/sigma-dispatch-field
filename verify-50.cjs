@@ -125,6 +125,7 @@ async function run(){
       await admin.evaluate(()=>refresh());
       await admin.waitForFunction(id=>byId(id).assignments[0]?.ack,id);
       if(i%5===0){
+        await admin.locator('#request-tools').evaluate(el=>el.open=true);
         await admin.locator('#adjust-post').evaluate(el=>el.open=true);
         await admin.locator('#adjust-form [name=hours]').fill('3.5');
         await admin.locator('#adjust-form').evaluate(form=>form.requestSubmit());
@@ -135,6 +136,7 @@ async function run(){
         await admin.locator('[data-action=cancel][data-id="'+id+'"]').click();
         await client.waitForFunction(id=>byId(id)?.confirmed===0,id);
       }else if(i%5===2){
+        await admin.locator('#request-tools').evaluate(el=>el.open=true);
         await admin.locator('#guard-record').evaluate(el=>el.open=true);
         await admin.locator('#find-record input').fill('3006');await admin.locator('#find-record button').click();
         assert.match(await admin.locator('#guard-record').innerText(),/Marked unavailable/);

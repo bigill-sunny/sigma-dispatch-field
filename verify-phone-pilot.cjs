@@ -41,6 +41,7 @@ async function run(){
     }
     const admin=await login(1001,'Admin');
     await admin.locator('#queue-results [data-action=select][data-id="2"]').click();
+    await admin.getByText('More request tools',{exact:true}).click();
     await admin.locator('#attendance-pin summary').click();
     await admin.locator('#save-attendance-pin [name=latitude]').fill(String(gps.latitude));
     await admin.locator('#save-attendance-pin [name=longitude]').fill(String(gps.longitude));

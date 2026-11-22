@@ -2097,8 +2097,10 @@ function requestPanel(r) {
     const matches=preferenceMatches(g,r,projected);
     return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${offerFor(r,g)?.arrivalAt?' · Latest ETA projects '+formatTime(data.now+offerFor(r,g).arrivalAt-offerFor(r,g).at):''} ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${rankDetails(g,r)}</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
   }).join('')}</tbody></table></div>`:''}
+  <details id="request-tools" class="details"><summary>More request tools</summary>
   ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
-  ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
+  ${standbyPanel(r)}${attendancePinPanel(r)}${dispatchFitReviews(r)}${operationsTools(r)}</details>
+  ${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${a.checkIn?'· Arrived at '+formatTime(a.checkIn.at)+' ('+safe(a.checkIn.source)+')':''}
   ${!a.checkIn&&r.end>data.now&&r.start-data.now<=15*minute?button('Verify arrival','verify-arrival',r.id,a.guard):''}
   ${!a.checkIn&&r.end>data.now&&isPast(r)?button('Report no-show','no-show',r.id,a.guard,'danger'):''}
   ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
@@ -2354,6 +2356,8 @@ async function submitAction(action,id='',extra='',fields={}) {
   if(busy||!account)return false;
   busy=true;
   let completed=false;
+  const selectedBefore=view.selected;
+  const openSections=[...document.querySelectorAll('#screen details[id][open]')].map(el=>el.id);
   try{
     const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,requestVersion:byId(id)?.version||0,checked:[...view.checked],action,id,extra,fields}));
     const result=await response.json();
@@ -2368,6 +2372,12 @@ async function submitAction(action,id='',extra='',fields={}) {
     }
     view.checked=new Set(result.checked);
     render();
+    if(view.selected===selectedBefore&&action!=='create-request'){
+      for(const id of openSections){
+        const section=document.getElementById(id);
+        if(section)section.open=true;
+      }
+    }
     announce(result.message);
     completed=true;
   }catch(error){announce(error.message,true);}
