@@ -1,0 +1,2042 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11243a">
+  <title>Sigma Dispatch</title>
+  <style>
+    :root{font-family:Inter,'Segoe UI',system-ui,sans-serif;color:#1e303d;background:#f2f6f6;font-synthesis:none;--nav:#11243a;--muted:#506672;--line:#dce6e7;--teal:#00675b;--mint:#9de7d2;--red:#9e3e30}
+    *{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.55}a{color:var(--teal)}:focus-visible{outline:3px solid #258f7c;outline-offset:3px}h1,h2,h3,p{margin:0}h1{font-size:clamp(2rem,4vw,3.15rem);letter-spacing:-.055em;line-height:1.05}h2{font-size:1.25rem;letter-spacing:-.025em}h3{font-size:1.04rem}.muted{color:var(--muted)}.small{font-size:.875rem}.dim{color:#b8ccd3}.eyebrow{font-size:.875rem;font-weight:700;color:var(--teal)}
+    header{background:var(--nav);color:white}.head,.shell{width:min(1320px,calc(100% - 48px));margin:auto}.head{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 0}.brand{display:flex;align-items:center;gap:11px;font-size:1.13rem;font-weight:750;letter-spacing:-.025em}.mark{background:var(--mint);color:var(--nav);border-radius:9px;width:34px;height:34px;display:grid;place-items:center;font-size:1.2rem}.head-right,.role-tabs,.actions,.wrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.role-tabs{gap:3px;border:1px solid #415360;border-radius:10px;padding:4px}.role-tabs button{background:transparent;border:0;color:#d5e0e4;padding:7px 13px;border-radius:6px;font-size:.875rem;font-weight:650}.role-tabs button[aria-pressed=true]{background:#e0f7f0;color:#16413a}.demo-label{color:#b8ccd3;font-size:.875rem}.shell{padding:30px 0 48px}.command{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:15px;border-bottom:1px solid var(--line)}.command select{max-width:100%}.command label{font-size:.875rem;font-weight:700}.clock{font-variant-numeric:tabular-nums;font-weight:750}.hero{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:22px}.hero p{margin-bottom:6px}.hero .muted{margin:7px 0 0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 18px}.metric,.card{background:#fff;border:1px solid var(--line);border-radius:14px}.metric{padding:13px 16px}.metric strong{display:block;font-size:1.65rem;letter-spacing:-.06em}.metric span{font-size:.875rem;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:minmax(275px,.77fr) minmax(0,1.6fr);gap:16px;align-items:start}.grid.equal{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:17px;min-width:0}.card+.card{margin-top:12px}.section-top{display:flex;align-items:start;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:13px}.sub{margin:5px 0;color:var(--muted);font-size:.91rem}.stack{display:grid;gap:9px}.list-button{width:100%;background:#fff;text-align:left;border:1px solid var(--line);border-radius:10px;padding:11px;color:inherit}.list-button[aria-pressed=true]{border-color:#54a894;background:#eef9f5}.row{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}.row+.row{margin-top:4px}.tag{border-radius:100px;padding:4px 9px;background:#eaf2f2;color:#3a5561;font-size:.875rem;font-weight:680;white-space:nowrap}.tag.rush{color:#933423;background:#ffede7}.tag.good{color:#006353;background:#e0f5ec}.tag.warn{color:#805419;background:#fff1d9}.progress{width:100%;height:7px;border:0;border-radius:9px;overflow:hidden;background:#e6efef;margin:10px 0}.progress div{height:100%;background:#158d77;border-radius:9px}.button{background:#fff;color:#25414b;border:1px solid #bfd2d4;border-radius:8px;padding:7px 11px;font-size:.875rem;font-weight:700;line-height:1.35}.button:hover,.list-button:hover{background:#eaf7f3}.button.primary{background:var(--teal);color:white;border-color:var(--teal)}.button.primary:hover{background:#00574e}.button.danger{color:var(--red)}.divider{margin:15px 0;border:0;border-top:1px solid var(--line)}.notice{padding:10px 12px;background:#e8f5ef;border:1px solid #c9e7db;border-radius:9px;color:#185849;margin:0 0 15px}.notice.error{background:#fff0ea;border-color:#edd3ca;color:#853919}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;font-size:.875rem}th{color:#526773;padding:8px 7px;font-weight:650;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:9px 7px;border-bottom:1px solid #e7eeee;vertical-align:middle}td:first-child,th:first-child{padding-left:0}td:last-child{text-align:right;padding-right:0}.empty{border:1px dashed #c7d8d8;border-radius:10px;color:var(--muted);padding:14px}.entry{padding:10px 0;border-bottom:1px solid var(--line)}.entry:last-child{border-bottom:0}.activity{max-height:215px;overflow:auto}.fields{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}.fields label,form>label{display:grid;gap:4px;font-size:.875rem;font-weight:650}.full{grid-column:1/-1}input,select,textarea{color:#1e303d;background:white;border:1px solid #bfd2d4;border-radius:7px;padding:7px 8px;min-width:0}.command select{padding:5px 7px}textarea{resize:vertical}.form-actions{margin-top:10px}.details{padding:9px 0}.details summary{cursor:pointer;font-weight:650;color:var(--teal)}.details[open] summary{margin-bottom:8px}.filter{flex:1;max-width:270px} @media(max-width:760px){.head,.shell{width:calc(100% - 28px)}.grid,.grid.equal{grid-template-columns:1fr}.head{padding:10px 0}.shell{padding-top:16px}.stats{gap:6px}.metric{padding:9px}.metric strong{font-size:1.35rem}.metric span{font-size:.875rem}.card{padding:12px}.table-wrap{margin-right:-4px}}
+    .demo-controls{flex-basis:100%;padding:0}.demo-controls summary{width:fit-content;border:1px solid #bfd2d4;border-radius:100px;padding:5px 10px;background:#fff;font-size:.875rem}.demo-controls summary:hover{background:#eaf7f3}
+    [hidden]{display:none!important}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+    #account{display:flex;align-items:center;gap:10px;color:#d5e0e4;font-size:.875rem;flex-wrap:wrap}
+    .login-card{margin:clamp(18px,9vh,90px) auto 0;width:min(100%,460px);padding:clamp(20px,5vw,40px)}
+    .login-card h1{margin-bottom:24px}.login-form{display:grid;gap:10px}.login-form .button{margin-top:8px}.login-form input,.login-form .button{min-height:46px}.login-form #login-role:empty{display:none}
+    .guard-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}.guard-tabs button{min-height:48px;background:white;border:1px solid #bfd2d4;border-radius:9px;color:#25414b;font-weight:650;padding:7px}.guard-tabs button[aria-pressed=true]{background:#e0f7f0;color:#12463e;border-color:#54a894}
+    .rush-banner{position:sticky;top:0;z-index:2;background:#fff4ed;border:1px solid #df9d85;border-radius:12px;padding:12px 14px;margin-bottom:18px;color:#662c20;display:grid;gap:6px}.countdown{font-variant-numeric:tabular-nums;font-weight:750}.offer-actions .button{min-height:44px}.check-in{margin:9px 0 0}
+    .preference-form{display:grid;gap:12px;margin-top:12px}.preference-form fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.preference-form legend{font-weight:650}.preference-form input[type=number]{max-width:180px}.choice{min-height:42px;display:inline-flex;align-items:center;gap:6px;padding:4px;font-weight:600}
+    .chat-trigger{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:5;min-height:46px;border-radius:50px;padding-inline:18px}.chat-drawer{position:fixed;z-index:4;bottom:calc(75px + env(safe-area-inset-bottom));right:16px;width:min(420px,calc(100% - 32px));max-height:min(70dvh,640px);display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 35px #11243a33}.chat-messages{overflow:auto;min-height:70px;flex:1;display:flex;flex-direction:column;gap:8px}.chat-line{background:#eff5f4;border-radius:8px;padding:9px;overflow-wrap:anywhere}.chat-line.you{background:#dff4eb;align-self:flex-end}.chat-line p+.button{margin-top:8px}.chat-suggestions{display:flex;gap:5px;overflow:auto}.chat-suggestions button{flex:none}#chat-form input{flex:1;min-width:0}#chat-form{flex-wrap:nowrap}
+    @media(max-width:570px){.guard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.rush-banner .offer-actions .button{flex:1}.chat-drawer{padding:12px}.shell:has(+ #chat .chat-trigger){padding-bottom:84px}}
+  
+    .decision-title{display:block;font-size:1.1rem;margin:6px 0}.mobile-back{display:none}.secondary-metrics{margin-bottom:12px}.metric strong{font-size:1.25rem}.hero h1{font-size:1.8rem}
+    @media(max-width:760px){.dispatch-grid .request-column,.dispatch-grid.detail-open .queue-column{display:none}.dispatch-grid.detail-open .request-column{display:block}.mobile-back{display:inline-block;margin-bottom:12px}.shell:has(.detail-open) .stats{display:none}.table-wrap table,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block}.table-wrap thead{position:absolute;clip-path:inset(50%)}.table-wrap tr{border:1px solid var(--line);padding:10px;margin-bottom:8px;border-radius:8px}.table-wrap td{border:0;text-align:left;padding:4px}.table-wrap td:nth-child(3)::before{content:'On-time record · '}.table-wrap td:nth-child(4)::before{content:'Hours on board · '}.table-wrap td:nth-child(5)::before{content:'Preferences · '}.button{min-height:44px}}
+  :root{--nav:#11243a;--teal:#214d76;--line:#d5dee6;--muted:#4d6172;color:#172c40;background:#eef2f5}
+header{background:var(--nav);border-bottom:3px solid #a98950}.brand{letter-spacing:-.02em}.mark{color:#fff4d8;background:#28445c;border:1px solid #bba06e;clip-path:polygon(0 0,100% 0,100% 71%,50% 100%,0 71%);border-radius:3px;padding-bottom:3px}
+.card,.metric{border-radius:10px;box-shadow:0 2px 5px #18334b08}.card{padding:clamp(15px,2vw,24px)}.button.primary:hover{background:#193f62}.tag.good{background:#e0f2e9;color:#1c5944}.button{border-color:#b8c7d4}.clock,.shift-time,.calendar{font-variant-numeric:tabular-nums}.progress div{background:#308064}.field-heading{margin:14px 0 20px}.field-heading p{font-size:.83rem;color:var(--muted);font-weight:650;margin-bottom:5px}.field-heading h1{font-size:2.1rem}.shell:has(.guard-tabs){max-width:800px}.shift-time{font-size:1.32rem;letter-spacing:-.025em}.site-line{font-weight:650;margin-top:6px}.segments{display:flex;padding:3px;border-radius:8px;background:#eaf0f5}.segments button,.calendar button{border:0;background:transparent;color:#294761;font-weight:650;padding:7px 12px;border-radius:5px}.segments button[aria-pressed=true]{background:white;box-shadow:0 1px 4px #192e402b}.calendar{margin:14px 0;padding:12px 0;border-block:1px solid var(--line)}.calendar .row button{font-size:1.4rem;min-width:44px}.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));text-align:center;margin-top:8px}.days span{font-size:.78rem;color:var(--muted);padding:6px}.days button{position:relative;min-height:44px;padding:4px}.days .adjacent{color:#697987}.days .scheduled:after{content:'';position:absolute;bottom:4px;left:calc(50% - 3px);width:6px;height:6px;border-radius:50%;background:currentColor}.days button[aria-pressed=true]{color:white;background:#244e73}
+.guard-tabs button[aria-pressed=true]{background:#e6eef6;color:#133d61;border-color:#7592ab}.nav-icon{display:none}
+@media(max-width:760px){
+.shell:has(.guard-tabs){padding-bottom:155px}.guard-tabs{position:fixed;z-index:6;bottom:0;left:0;right:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid var(--line);background:white;padding:3px 4px max(4px,env(safe-area-inset-bottom));box-shadow:0 -3px 12px #12284a0d}.guard-tabs button{border:0;border-radius:6px;display:grid;justify-items:center;align-content:center;gap:3px;min-height:56px;font-size:.73rem}.nav-icon{display:block;width:21px;height:21px;font:700 20px/21px system-ui}.nav-shifts:before{content:'▦'}.nav-open:before{content:'⇄'}.nav-leave:before{content:'◷'}.nav-hours:before{content:'☷'}
+body:has(.guard-tabs) .chat-trigger{bottom:calc(76px + env(safe-area-inset-bottom))}body:has(.guard-tabs) .chat-drawer{bottom:calc(131px + env(safe-area-inset-bottom));max-height:55dvh}.head{min-height:56px}.command{margin-bottom:12px;padding-bottom:8px}.field-heading{margin:8px 0 14px}.shell:has(.guard-tabs) .entry select{max-width:100%}
+}</style>
+</head>
+<body>
+  <header><div class="head"><div class="brand"><span class="mark" aria-hidden="true">Σ</span>Sigma Dispatch</div><div id="account"></div></div></header>
+  <main class="shell"><div class="command" id="command"></div><div id="notice" role="status" aria-live="polite"></div><div id="screen"></div></main>
+  <div id="chat"></div>
+<script>
+const offlineBundle=(()=>{
+  const sources={};
+  const load=(name,source)=>{
+    const module={exports:{}};
+    source(module,key=>sources[key]);
+    sources[name]=module.exports;
+  };
+  load('./catalog.js',(module,require)=>{ const startOfDemo = Date.UTC(new Date().getUTCFullYear(),0,1);
+const day = 86400000;
+const sites = [
+  {id:'harbor',client:'c1',name:'Maple Junction Centre',area:'Brampton',uniform:'Black polo',notes:'Meet the fictional site lead at the east reception desk. Bring your guard licence and photo ID.'},
+  {id:'cedar',client:'c2',name:'Cedar Square',area:'Mississauga',uniform:'Navy blazer',notes:'Check in at the fictional concierge desk. Ask for the site orientation sheet.'}
+];
+const clients = {c1:'Maple Property Group',c2:'Cedar Facilities'};
+const firstNames = ['Avery','Robin','Casey','Jamie','Morgan','Taylor','Reese','Quinn','Jordan','Drew','Sage','Parker'];
+const lastNames = ['Vale','Finch','Lane','Brooks','Reed','West','Blake','Shore','Fields','Hart'];
+const guards = Array.from({length:1000},(_,i)=>({
+  id:3001+i,name:`${firstNames[i%12]} ${lastNames[Math.floor(i/12)%10]+(i>=120?" "+(1+Math.floor(i/120)):"")}`,tier:i===2?0:i%9===0?2:1,
+  licensedUntil:i===0?startOfDemo-day:startOfDemo+730*day,
+  trained:[36,45,54].includes(i)?['harbor','cedar']:i===1?['cedar']:i<20?['harbor','cedar']:i%3===0?['cedar']:['harbor'],
+  uniforms:[36,45,54].includes(i)?['Black polo','Navy blazer']:i===3?['Navy blazer']:i<20?['Black polo','Navy blazer']:i%3===0?['Navy blazer']:['Black polo'],
+  eta:[36,45,54].includes(i)?21:i===4?185:i===15?37:i>=20?33+(i*7)%65:8+(i*3)%22,
+  reliability:87+(i*7)%14,available:i!==5 && (i<31||i%4!==0)
+}));
+
+const areas=['Brampton','Mississauga','Vaughan','Toronto','Markham'];
+for(let number=3;number<=100;number++){
+  const client='c'+number;
+  const area=areas[(number-3)%areas.length];
+  clients[client]=area+' Facilities '+number;
+  sites.push({id:'site'+number,client,area,name:area+' Plaza '+number,uniform:'Black polo',notes:'Report to reception with your guard licence and collect the site briefing.'});
+}
+for(const [i,g] of guards.entries()){
+  for(let offset=0;offset<5;offset++)g.trained.push('site'+(3+(i+offset*19)%98));
+  if(i>=120){
+    g.eta=7+(i*17)%65;
+    g.available=i%7!==0;
+  }
+  g.phone='+1-416-555-'+String(100+i%100).padStart(4,'0')+' ext '+g.id;
+  g.reportRecord={reviewed:10,accepted:7+i%4,asOf:startOfDemo,basis:'Supervisor review for completeness and timely submission'};
+  g.priorCancellations=i%4;
+  g.onTime=18+(i*7)%13;
+  g.completed=30;
+  g.reliability=Math.round(100*g.onTime/g.completed);
+}
+if(typeof module!=='undefined')module.exports={sites,clients,guards};
+
+ });
+  load('./model.js',(module,require)=>{ const minute = 60000;
+const hour = 60 * minute;
+const day = 24 * hour;
+const tiers = ['Guard','Tier 2','Supervisor'];
+let {sites,clients,guards}=typeof module!=='undefined'?require('./catalog.js'):{sites:[],clients:{},guards:[]};
+
+const guardId=id=>Number(id)>0&&Number(id)<=120?3000+Number(id):Number(id);
+const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const blocks=['Morning','Afternoon','Overnight'];
+const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true};
+
+function migrate(snapshot) {
+  if(snapshot.version===2)return snapshot;
+  for(const r of snapshot.requests){
+    for(const a of r.assignments)a.guard=guardId(a.guard);
+    if(r.cancelledGuard)r.cancelledGuard=guardId(r.cancelledGuard);
+    if(r.cancelledGuards)r.cancelledGuards=r.cancelledGuards.map(guardId);
+    r.offers=Object.fromEntries(Object.entries(r.offers).map(([id,offer])=>[guardId(id),offer]));
+  }
+  for(const leave of snapshot.leaves)leave.guard=guardId(leave.guard);
+  for(const swap of snapshot.swaps){
+    swap.guard=guardId(swap.guard);
+    if(swap.target)swap.target=guardId(swap.target);
+  }
+  snapshot.profiles={};
+  snapshot.version=2;
+  return snapshot;
+}
+
+function newRequest(id,site,when,length,need,tier,rush,notes='') {
+  return {id,site,start:when,end:when+length,need,tier,rush,notes,offers:{},assignments:[],alertCount:0};
+}
+
+function seed(){
+  const now=Date.now();
+  const surge=newRequest(1,'harbor',now+2*hour,4*hour,10,1,true,'Additional entrance coverage for an evening event. Check in at east reception.');
+  surge.supervisors=1;
+  const lobby=newRequest(2,'cedar',now+30*minute,4*hour,1,2,false,'Supervisor must collect the access log at reception.');
+  lobby.supervisors=1;
+  lobby.assignments.push({guard:3019,post:'Supervisor',at:now-hour});
+  const requests=[surge,lobby];
+  for(const [index,site] of sites.slice(2).entries()){
+    const start=now+(1+index%7)*day+(index%3)*hour;
+    const post=newRequest(index+3,site.id,start,6*hour,2,0,false,'Scheduled lobby coverage.');
+    const incumbents=guards.filter(g=>g.available&&g.licensedUntil>=post.end&&g.trained.includes(site.id)&&g.uniforms.includes(site.uniform)&&!requests.some(other=>overlaps(other,post)&&other.assignments.some(a=>a.guard===g.id)));
+    for(const guard of incumbents.slice(0,index%4===0?1:2))post.assignments.push({guard:guard.id,post:'General',at:now});
+    requests.push(post);
+  }
+  return {version:2,now,profiles:{},requests,leaves:[],swaps:[],next:101,log:[{at:now,message:'Weekly staffing requests received.'}]};
+}
+
+let data;
+const view={role:'admin',selected:1,guard:null,client:null,contact:null,search:'',status:'all',page:0,template:null,prefill:{},checked:new Set()};
+
+const byId=(id)=>data.requests.find(r=>r.id===Number(id));
+const guardBy=(id)=>guards.find(g=>g.id===Number(id));
+const siteBy=(id)=>sites.find(s=>s.id===id);
+const dateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',year:'numeric',month:'2-digit',day:'2-digit'});const inputDate=n=>{const parts=Object.fromEntries(dateFmt.formatToParts(n).map(p=>[p.type,p.value]));return [parts.year,parts.month,parts.day].join('-');};
+const calendarDate=(date,offset)=>new Date(Date.parse(date+'T12:00Z')+offset*day).toISOString().slice(0,10);
+const clockFmt=new Intl.DateTimeFormat('en-GB',{timeZone:'America/Toronto',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});const inputTime=n=>clockFmt.format(n);
+function localTime(date,time){const base=Date.parse(date+'T'+time+'Z');for(const offset of [4,5]){const t=base+offset*hour;if(Number.isFinite(t)&&inputDate(t)===date&&inputTime(t)===time)return t;}throw Error('Choose a valid Toronto local time.');}
+const formatTime=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',hour:'numeric',minute:'2-digit',hour12:true}).format(n);
+const formatDay=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',weekday:'short',month:'short',day:'numeric'}).format(n);
+const shiftTime=(r)=>`${formatDay(r.start)} · ${formatTime(r.start)}–${inputDate(r.start)===inputDate(r.end)?'':formatDay(r.end)+' '}${formatTime(r.end)}`;
+const open=(r)=>r.need-r.assignments.length;
+const isPast=(r)=>r.start<=data.now;
+const overlaps=(a,b)=>a.start<b.end&&b.start<a.end;
+const safe=(val)=>String(val??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+
+function gap(r){return Math.max(0,(r.supervisors||0)-r.assignments.filter(a=>a.post==='Supervisor').length);}
+const calendarCache=new WeakMap();
+function requestCalendar(r){
+  if(calendarCache.has(r))return calendarCache.get(r);
+  const midnight=localTime(inputDate(r.start),'00:00');
+  const dow=(new Date(inputDate(midnight)+'T12:00Z').getUTCDay()+6)%7;
+  const dateAt=i=>new Date(Date.parse(inputDate(midnight)+'T12:00Z')+i*day).toISOString().slice(0,10);
+  const monday=localTime(dateAt(-dow),'00:00'),weekEnd=localTime(dateAt(7-dow),'00:00');
+  const bounds=Array.from({length:3},(_,i)=>localTime(dateAt(i),'00:00'));
+  const calendar={monday,weekEnd,bounds};
+  calendarCache.set(r,calendar);
+  return calendar;
+}
+function scheduleCheck(g,r){
+  const {monday,weekEnd,bounds}=requestCalendar(r);
+  const duties=data.requests.filter(x=>r.id!==x.id&&x.assignments.some(a=>a.guard===g.id));
+  const hours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd)-Math.max(x.start,monday))/hour,0);
+  const nextHours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd+7*day)-Math.max(x.start,weekEnd))/hour,0);
+  const firstWeek=hours+(Math.min(r.end,weekEnd)-r.start)/hour;
+  const secondWeek=nextHours+Math.max(0,r.end-weekEnd)/hour;
+  const crossesWeek=r.end>weekEnd;
+  const projected=crossesWeek?Math.max(firstWeek,secondWeek):firstWeek;
+  const overtime=Math.max(0,firstWeek-44)-Math.max(0,hours-44)+(crossesWeek?Math.max(0,secondWeek-44)-Math.max(0,nextHours-44):0);
+  let rest=duties.some(x=>{const spacing=Math.max(x.start-r.end,r.start-x.end);return spacing>=0&&spacing<8*hour&&x.end-x.start+r.end-r.start>13*hour;});
+  for(let d=0;d<2;d++){const start=bounds[d],end=bounds[d+1];if(r.end<=start)break;
+    let cursor=start,longest=0;
+    for(const x of [...duties,r].filter(x=>x.start<end&&x.end>start).sort((a,b)=>a.start-b.start)){longest=Math.max(longest,x.start-cursor);cursor=Math.max(cursor,Math.min(end,x.end));}
+    rest ||= Math.max(longest,end-cursor)<11*hour;
+  }
+  return {rest,projected,ot:overtime,review:(g.id-3000)%23===0};
+}
+function eligibility(g,r,{forSwap=false}={}) {
+  const site=siteBy(r.site);
+  const remaining=Math.floor((r.start-data.now)/minute);
+  const reasons=[];
+  if(!forSwap&&g.tier<2&&open(r)>0&&gap(r)>=open(r))reasons.push('Supervisor post required');
+  if(r.force&&(g.id-3000)%6===0)reasons.push('MORB / use-of-force record missing');
+  if(r.vehicle&&(g.id-3000)%3!==1)reasons.push('Vehicle authorization missing');
+  const review=scheduleCheck(g,r);
+  if(review.rest)reasons.push('Rest check failed');
+  if(review.review)reasons.push('Schedule history needs review');
+  if(g.licensedUntil<r.end) reasons.push('Licence expires before shift ends');
+  if(g.tier<r.tier) reasons.push('Tier below site requirement');
+  if(!g.trained.includes(site.id)) reasons.push('Site training missing');
+  if(!g.uniforms.includes(site.uniform)) reasons.push('Required uniform unavailable');
+  if((preferencesFor(g.id).unavailable||[]).some(window=>overlaps(window,r)))reasons.push('Unavailable during this period');
+  if(!g.available) reasons.push('Marked unavailable');
+  if(data.leaves.some(l=>l.guard===g.id&&l.status==='Approved'&&overlaps(l,r))) reasons.push('Approved leave');
+  if(r.cancelledGuard===g.id||r.cancelledGuards?.includes(g.id)) reasons.push('Cancelled this shift');
+  if(r.assignments.some(a=>a.guard===g.id)) reasons.push('Already assigned here');
+  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&other.assignments.some(a=>a.guard===g.id))) reasons.push('Overlapping assignment');
+  if(remaining<=0) reasons.push('Shift already started');
+  else if(travelMinutes(g,r)>remaining) reasons.push('Estimated arrival is too late');
+  if(open(r)<=0&&!forSwap) reasons.push('All positions filled');
+  return reasons;
+}
+
+function travelMinutes(g,r){
+  const site=siteBy(r.site);
+  const areaIndex=['Brampton','Mississauga','Vaughan','Toronto','Markham'].indexOf(site.area);
+  return Math.max(5,g.eta+areaIndex*(3+(g.id%8)));
+}
+const attendanceCache=new WeakMap();
+function attendance(g){
+  let index=attendanceCache.get(data);
+  if(!index){
+    index=new Map();
+    for(const r of data.requests)for(const a of r.assignments||[]){
+      if(!a.review)continue;
+      const record=index.get(a.guard)||{onTime:0,completed:0};
+      record.completed++;
+      if(a.review.arrival==='On time')record.onTime++;
+      index.set(a.guard,record);
+    }
+    attendanceCache.set(data,index);
+  }
+  const recorded=index.get(g.id);
+  const onTime=g.onTime+(recorded?.onTime||0),completed=g.completed+(recorded?.completed||0);
+  return {onTime,completed,rate:onTime/completed};
+}
+const sortedGuards=(r)=>[...guards].sort((a,b)=>r.rush?travelMinutes(a,r)-travelMinutes(b,r)||attendance(b).rate-attendance(a).rate:attendance(b).rate-attendance(a).rate||travelMinutes(a,r)-travelMinutes(b,r));
+const audit=(message)=>data.log.unshift({at:data.now,message});
+const offerFor=(r,g)=>r.offers[g.id];
+const waiting=(r)=>Object.values(r.offers).filter(o=>o.status==='Volunteered').length;
+const preferencesFor=(id)=>data.profiles[id]||defaultPreferences;
+const activeOffer=(o)=>o?.status==='Invited'&&o.expires>data.now&&(!o.replyDeadline||o.replyDeadline>Date.now());
+const availableForWave=(r)=>sortedGuards(r).filter(g=>!offerFor(r,g)&&(!r.rush||preferencesFor(g.id).rush)&&!eligibility(g,r).length);
+
+function preferenceMatches(g,r,projected) {
+  const {days,blocks:preferred,maxHours}=preferencesFor(g.id);
+  const weekday=weekdays[(new Date(inputDate(r.start)+'T12:00Z').getUTCDay()+6)%7];
+  const startHour=Number(inputTime(r.start).slice(0,2));
+  const block=startHour>=6&&startHour<12?'Morning':startHour>=12&&startHour<18?'Afternoon':'Overnight';
+  return days.includes(weekday)&&preferred.includes(block)&&projected<=maxHours;
+}
+
+function insist(condition,message) {if(!condition) throw new Error(message);}
+
+function volunteer(r,g) {
+  const existing=offerFor(r,g);
+  if(existing?.status==='Volunteered') return 'Your response is already awaiting approval.';
+  insist(!existing||activeOffer(existing),'The offer expired. Check the open shift list.');
+  const failures=eligibility(g,r);
+  insist(!failures.length,failures.join(' · '));
+  r.offers[g.id]={...existing,status:'Volunteered',at:data.now};
+  audit(`${g.name} volunteered for ${siteBy(r.site).name}.`);
+  return 'Response sent. The shift appears on your schedule after administrator approval.';
+}
+
+function closeOffers(r) {
+  for(const o of Object.values(r.offers)) if(['Invited','Volunteered'].includes(o.status)) o.status='Closed';
+}
+
+function recordEvent(r,status,guard){
+  (r.history ||= []).push({at:data.now,status,guard});
+}
+function autoWave(r){
+  if(r.rush&&open(r)>0&&!isPast(r)&&availableForWave(r).length)sendWave(r);
+}
+function assign(r,g) {
+  const failures=eligibility(g,r);
+  insist(!failures.length,failures.join(' · '));
+  insist(offerFor(r,g)?.status==='Volunteered','This guard has not volunteered.');
+  r.assignments.push({guard:g.id,post:g.tier===2&&gap(r)?'Supervisor':'General',at:data.now});
+  offerFor(r,g).status='Approved';recordEvent(r,'Approved',g.id);
+  if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
+  audit(`${g.name} approved and notified for ${siteBy(r.site).name}.`);
+}
+
+function cancelAssignment(r,g,reason='Guard cancelled') {
+  insist(!isPast(r),'This shift has already started.');
+  const index=r.assignments.findIndex(a=>a.guard===g.id);
+  insist(index!==-1,'This assignment is already open.');
+  r.assignments.splice(index,1);
+  for(const s of data.swaps)if(s.shift===r.id&&s.guard===g.id&&s.status==='Pending')s.status='Declined';
+  r.cancelledGuards=[...new Set([...(r.cancelledGuards||[]),r.cancelledGuard,g.id].filter(Boolean))];
+  r.cancelledGuard=g.id;
+  for(const [id,o] of Object.entries(r.offers))if(o.status==='Closed')delete r.offers[id];
+  if(offerFor(r,g)) offerFor(r,g).status='Cancelled';
+  recordEvent(r,reason,g.id);
+  r.replacement=true;
+  r.rush ||= r.start-data.now<=2*hour;
+  autoWave(r);
+  audit(`${g.name} ${reason.toLowerCase()}. A position reopened at ${siteBy(r.site).name}.`);
+}
+
+function sendWave(r) {
+  const pool=availableForWave(r);
+  const specialists=pool.filter(g=>g.tier===2).slice(0,gap(r)*2);
+  const ranked=[...specialists,...pool.filter(g=>!specialists.includes(g))];
+  insist(pool.length,'No new eligible guards. Review the exclusions and escalate if needed.');
+  const expires=Math.min(r.start,data.now+(r.rush?5:60)*minute);
+  const invited=ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
+  const replyDeadline=r.rush?Date.now()+expires-data.now:null;
+  for(const g of invited) r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline};
+  r.alertCount+=1;recordEvent(r,'Seeking cover');
+  audit(`Offer wave ${r.alertCount} sent to ${invited.length} eligible guards.`);
+  return `${invited.length} offers sent. Responses will appear in this request.`;
+}
+
+function eligibleSwaps(l) {
+  const r=byId(l.shift);
+  const assignment=r?.assignments.find(a=>a.guard===l.guard);
+  if(!assignment||isPast(r))return [];
+  return guards.filter(g=>(assignment.post!=='Supervisor'||g.tier===2)&&g.id!==l.guard&&!eligibility(g,r,{forSwap:true}).length);
+}
+
+function resolveChange(type,id,approve) {
+  insist(type==='leave'||type==='swap','Choose a valid schedule change.');
+  const item=(type==='leave'?data.leaves:data.swaps).find(x=>x.id===Number(id));
+  insist(item?.status==='Pending','This item was already reviewed.');
+  const g=guardBy(item.guard);
+  if(approve&&type==='leave') {
+    const affected=data.requests.filter(r=>!isPast(r)&&overlaps(item,r)&&r.assignments.some(a=>a.guard===g.id));
+    for(const r of affected) cancelAssignment(r,g,'Released for approved leave');
+    audit(`Leave approved for ${g.name}. ${affected.length} future shift positions reopened.`);
+  }
+  if(approve&&type==='swap') {
+    const r=byId(item.shift);
+    const index=r.assignments.findIndex(a=>a.guard===g.id);
+    insist(index>=0,'The original assignment has changed.');
+    insist(item.accepted,'The proposed guard must accept first.');
+    insist(eligibleSwaps(item).some(x=>x.id===item.target),'The replacement no longer meets the shift requirements.');
+    r.assignments[index]={guard:item.target,post:r.assignments[index].post,at:data.now};
+    recordEvent(r,'Swap approved',item.target);
+    audit(`Swap approved from ${g.name} to ${guardBy(item.target).name}.`);
+  }
+  if(!approve) audit(`${type==='swap'?'Swap':'Leave'} declined for ${g.name}.`);
+  item.status=approve?'Approved':'Declined';
+  return `${type==='swap'?'Swap':'Leave'} ${item.status.toLowerCase()}.`;
+}
+
+function reviewBatch(r) {
+  const selected=sortedGuards(r).sort((a,b)=>Number(b.tier===2)-Number(a.tier===2)).filter(g=>view.checked.has(g.id)&&offerFor(r,g)?.status==='Volunteered');
+  let approved=0;
+  for(const g of selected) {
+    if(eligibility(g,r).length) continue;
+    assign(r,g);
+    approved++;
+  }
+  view.checked.clear();
+  return `${approved} approved · ${selected.length-approved} skipped · ${open(r)} positions still open.`;
+}
+
+function openRequest(r) {
+  view.selected=r.id;
+  view.checked.clear();
+}
+
+const adminActions={
+  wave:sendWave,
+  escalate:r=>{
+    insist(open(r)>0,'This request is already staffed.');
+    r.escalated=true;
+    r.followUp={owner:view.contact,at:data.now,due:Math.max(data.now,Math.min(r.start,data.now+5*minute))};
+    audit(view.contact+' took responsibility for follow-up at '+siteBy(r.site).name+'.');
+    return 'You own the follow-up.';
+  },
+  approve:(r,_,extra)=>{assign(r,guardBy(extra));return 'Guard approved. Confirmation is visible in their guard view.';},
+  batch:reviewBatch,
+  cancel:(r,_,extra)=>{cancelAssignment(r,guardBy(extra),'Removed by dispatch');return 'The position is open again.';},
+  'accept-change':(_,id,extra)=>resolveChange(extra,id,true),
+  'deny-change':(_,id,extra)=>resolveChange(extra,id,false)
+};
+
+const guardActions={
+  ack:r=>{const a=r.assignments.find(a=>a.guard===view.guard);insist(a&&r.end>data.now,'Current assignment required.');a.ack=data.now;audit(guardBy(view.guard).name+' acknowledged the site brief.');return 'Acknowledgment recorded.';},
+  pool:r=>{insist(!isPast(r)&&r.assignments.some(a=>a.guard===view.guard),'Upcoming assignment required.');insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target:null,status:'Pending',accepted:false});recordEvent(r,'Swap requested',view.guard);audit('Swap opened to eligible peers.');return 'Pool open. Your assignment stays active until approval.';},
+  claim:(_,id)=>{
+    const s=data.swaps.find(x=>x.id===Number(id));
+    insist(s&&s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(x=>x.id===view.guard),'Swap unavailable.');
+    s.target=view.guard;
+    s.accepted=true;
+    s.claimedFromPool=true;
+    return 'Claim sent for approval.';
+  },
+
+  volunteer:(r)=>{
+    const g=guardBy(view.guard);
+    insist(!r.rush||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
+    return volunteer(r,g);
+  },
+  decline:(r)=>{
+    const g=guardBy(view.guard);
+    insist(activeOffer(offerFor(r,g)),'This offer is no longer active.');
+    offerFor(r,g).status='Declined';recordEvent(r,'Rejected offer',g.id);
+    audit(`${g.name} declined an offer.`);
+    return 'Offer declined.';
+  },
+  'guard-cancel':(r)=>{cancelAssignment(r,guardBy(view.guard));return 'Cancellation recorded. Dispatch can now find cover.';},
+  'accept-swap':(_,id)=>{
+    const s=data.swaps.find(x=>x.id===Number(id)&&x.target===view.guard&&x.status==='Pending');
+    insist(s,'This proposal is no longer available.');
+    insist(eligibleSwaps(s).some(g=>g.id===view.guard),'You are no longer eligible for this shift.');
+    s.accepted=true;
+    audit(`${guardBy(view.guard).name} accepted a swap proposal.`);
+    return 'Acceptance sent for administrator approval.';
+  }
+};
+
+function createRequest(form) {
+  const site=siteBy(form.get('site'));
+  const start=localTime(form.get('date'),form.get('time'));
+  const length=Number(form.get('hours'))*hour;
+  const count=Number(form.get('count'));
+  const tier=Number(form.get('tier'));
+  insist(site?.client===view.client,'Choose a site belonging to this client.');
+  insist(start>data.now,'Choose a start time after the current time.');
+  insist(length>=hour/2&&length<=24*hour&&Number.isInteger(count)&&count>=1&&count<=120&&tiers[tier],'Check duration, guard count, and tier.');
+  const r=newRequest(data.next++,site.id,start,length,count,tier,form.get('rush')==='urgent'||start-data.now<=2*hour,String(form.get('notes')||'').slice(0,400));
+  r.contact=view.contact; r.dress=String(form.get('dress')||'').slice(0,160);r.source=['Phone','Email'].includes(form.get('source'))?form.get('source'):'Portal';
+  r.supervisors=Number(form.get('supervisors')||0);insist(Number.isInteger(r.supervisors)&&r.supervisors>=0&&r.supervisors<=count,'Supervisor posts must fit inside total headcount.');r.force=Boolean(form.get('force'));r.vehicle=Boolean(form.get('vehicle'));
+  data.requests.push(r);recordEvent(r,'Received');autoWave(r);
+  openRequest(r);
+  audit(`${clients[view.client]} submitted a ${r.rush?'rush':'regular'} request for ${count} guards.`);
+  view.template=null;
+  view.prefill={};
+  return 'Request submitted. Coverage will update here as assignments are approved.';
+}
+
+function leaveRange(first,last,now,leaves) {
+  insist(/^\d{4}-\d{2}-\d{2}$/.test(first)&&/^\d{4}-\d{2}-\d{2}$/.test(last)&&first>=inputDate(now)&&last>=first,'Choose valid leave dates.');
+  const start=localTime(first,'00:00');
+  localTime(last,'00:00');
+  const end=localTime(calendarDate(last,1),'00:00');
+  insist(!leaves.some(l=>l.status!=='Declined'&&overlaps(l,{start,end})),'An existing leave request overlaps those dates.');
+  return {start,end};
+}
+
+function requestLeave(form) {
+  const {start,end}=leaveRange(form.get('first'),form.get('last'),data.now,data.leaves.filter(l=>l.guard===view.guard));
+  data.leaves.push({id:data.next++,guard:view.guard,start,end,status:'Pending'});
+  audit(`${guardBy(view.guard).name} requested leave.`);
+  return 'Leave sent for administrator review.';
+}
+
+function requestSwap(form,shift) {
+  const r=byId(shift);
+  const target=Number(form.get('target'));
+  insist(r?.assignments.some(a=>a.guard===view.guard),'Only the assigned guard can propose a swap.');
+  insist(eligibleSwaps({shift:r.id,guard:view.guard}).some(g=>g.id===target),'That guard is no longer eligible.');
+  insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');
+  data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target,status:'Pending',accepted:false});
+  recordEvent(r,'Swap requested',view.guard);audit(`${guardBy(view.guard).name} proposed a swap.`);
+  return 'Swap proposed. Your assignment stays active while it is under review.';
+}
+
+function savePreferences(fields) {
+  const {days,blocks:preferred,maxHours,rush}=fields;
+  insist(Array.isArray(days)&&days.every(day=>weekdays.includes(day))&&Array.isArray(preferred)&&preferred.every(block=>blocks.includes(block)),'Choose valid working days and shift blocks.');
+  insist(Number.isFinite(maxHours)&&maxHours>=1&&maxHours<=168&&typeof rush==='boolean','Choose a weekly hours target from 1 to 168.');
+  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush};
+  return 'Working preferences saved.';
+}
+
+function project(snapshot,account) {
+  data=migrate(snapshot); data.now=Date.now();
+  if(account.role==='admin')return {state:data,catalog:{sites,clients,guards}};
+  if(account.role==='client'){
+    const clientSites=sites.filter(site=>site.client===account.client);
+    const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
+      const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
+      return {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+    });
+    return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
+  }
+  const g=guardBy(account.guard);
+  const requests=[];
+  for(const r of data.requests){
+    const mine=r.assignments.find(a=>a.guard===g.id);
+    const offer=offerFor(r,g);
+    const invited=activeOffer(offer);
+    const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
+    const pendingSwap=data.swaps.some(s=>s.shift===r.id&&s.guard===g.id&&s.status==='Pending');
+    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer)continue;
+    const {area,uniform,name,notes}=siteBy(r.site);
+    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress}:{area,uniform,dress:r.dress};
+    const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
+    requests.push({id:r.id,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+  }
+  const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
+    const {start,end,site}=byId(s.shift);
+    const {area,uniform}=siteBy(site);
+    return {id:s.id,start,end,location:{area,uniform}};
+  });
+  const swaps=data.swaps.filter(s=>s.guard===g.id||s.target===g.id).map(s=>({
+    id:s.id,start:byId(s.shift).start,status:s.status,incoming:s.target===g.id,accepted:s.accepted,claimedFromPool:s.claimedFromPool,
+    peer:guardBy(s.target===g.id?s.guard:s.target)?.name
+  }));
+  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  const state={now:data.now,notices,requests,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
+  return {state,catalog:{sites:[],clients:{},guards:[]}};
+}
+
+if(typeof module!=='undefined') module.exports={
+  seed,migrate,project,
+  execute(snapshot, command, account) {
+    data=migrate(structuredClone(snapshot)); data.now=Date.now();
+    const {role,client,guard,name:contact}=account;
+    const {action,id,extra,fields={}}=command;
+    Object.assign(view,{role,client,guard,contact,checked:new Set(role==='admin'&&Array.isArray(command.checked)?command.checked:[])});
+    const form=new Map(Object.entries(fields));
+    const shift=byId(id);
+    let message;
+    if(role==='admin'&&action==='adjust-assignment'){
+      const g=guardBy(extra);
+      const assigned=shift?.assignments.find(a=>a.guard===g?.id);
+      insist(assigned&&!isPast(shift),'Upcoming assignment required.');
+      const start=localTime(fields.date,fields.time),duration=Number(fields.hours)*hour;
+      insist(start>data.now&&duration>=hour/2&&duration<=24*hour,'Choose a future start and a valid duration.');
+      insist(start!==shift.start||start+duration!==shift.end,'Choose a different time or duration.');
+      const moved=newRequest(data.next++,shift.site,start,duration,1,shift.tier,start-data.now<=2*hour,shift.notes);
+      Object.assign(moved,{dress:shift.dress,force:shift.force,vehicle:shift.vehicle,contact:shift.contact,source:shift.source,supervisors:Number(assigned.post==='Supervisor')});
+      shift.assignments=shift.assignments.filter(a=>a!==assigned);
+      shift.need--;shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
+      if(shift.offers[g.id])shift.offers[g.id].status='Rescheduled';
+      for(const swap of data.swaps)if(swap.shift===shift.id&&swap.guard===g.id&&swap.status==='Pending')swap.status='Declined';
+      recordEvent(shift,'Rescheduled by dispatch',g.id);
+      data.requests.push(moved);recordEvent(moved,'Revised shift listed',g.id);
+      if(!eligibility(g,moved).length&&(!moved.rush||preferencesFor(g.id).rush)){
+        const expires=Math.min(start,data.now+(moved.rush?5:60)*minute);
+        moved.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline:moved.rush?expires:null};
+      }
+      autoWave(moved);openRequest(moved);audit(view.contact+' revised the post for '+g.name+'. Fresh acceptance required.');
+      message='Revised shift listed for fresh acceptance.';
+    }else if(role==='admin'&&action==='review-duty'){
+      const assignment=shift?.assignments.find(a=>a.guard===Number(extra));
+      insist(assignment&&shift.end<=data.now,'Choose a completed assignment.');
+      insist(['On time','Late'].includes(fields.arrival)&&['Accepted','Needs correction'].includes(fields.report),'Choose attendance and report outcomes.');
+      insist(typeof fields.note==='string'&&fields.note.trim(),'Enter the review basis.');
+      assignment.review={arrival:fields.arrival,report:fields.report,note:String(fields.note||'').slice(0,200),by:contact,at:data.now};
+      recordEvent(shift,'Duty review saved',Number(extra));
+      message='Duty record saved.';
+    }else if(role==='admin'&&action==='call-note'){
+      const g=guardBy(extra);
+      insist(shift&&g&&['No answer','Unavailable','Will review offer'].includes(fields.outcome),'Choose a guard and outcome.');
+      recordEvent(shift,fields.outcome,g.id);audit(view.contact+' logged phone follow-up with '+g.name+': '+fields.outcome);
+      message='Follow-up recorded.';
+    }else if(role==='client'&&action==='create-request') message=createRequest(form);
+    else if(role==='guard'&&action==='leave-request') message=requestLeave(form);
+    else if(role==='guard'&&action==='swap-request') message=requestSwap(form,id);
+    else if(role==='guard'&&action==='unavailable'){
+      const start=localTime(fields.date,fields.from),end=localTime(fields.endDate,fields.to);
+      insist(start<end&&end>data.now,'Choose an unavailable period ending in the future.');
+      const profile=preferencesFor(guard);
+      insist(!data.requests.some(r=>r.assignments.some(a=>a.guard===guard)&&overlaps(r,{start,end})),'An assigned shift overlaps. Request a swap or report the cancellation first.');
+      const windows=(profile.unavailable||[]).filter(w=>w.end>data.now);
+      insist(!windows.some(w=>overlaps(w,{start,end})),'An unavailable period already overlaps these dates.');
+      data.profiles[guard]={...profile,unavailable:[...windows,{start,end}]};message='Unavailable period saved.';
+    }else if(role==='guard'&&action==='remove-window'){
+      const profile=preferencesFor(guard);
+      data.profiles[guard]={...profile,unavailable:(profile.unavailable||[]).filter(w=>w.start!==Number(id))};message='Unavailable period removed.';
+    }else if(role==='guard'&&action==='preferences') message=savePreferences(fields);
+    else{
+      const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
+      insist(Object.hasOwn(actions,action),'Unavailable action.');
+      if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
+      if(['cancelSupervisor','fast','wave','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
+      message=actions[action](shift,id,extra);
+    }
+    return {state:data,message,selected:view.selected,checked:[...view.checked]};
+  }
+};
+
+ });
+  load('./accounts.js',(module,require)=>{ const {guards,clients}=require('./catalog.js');
+
+const demoAccounts=[
+  {id:1001,role:'admin',name:'Jordan Ellis'},
+  {id:1002,role:'admin',name:'Casey Morgan'},
+  {id:2001,role:'client',name:'Vivian Chen',client:'c1',company:clients.c1},
+  {id:2002,role:'client',name:'Rowan Ellis',client:'c2',company:clients.c2},
+  {id:1003,role:'admin',name:'Avery Brooks'},
+  ...Object.entries(clients).slice(2).map(([client,company])=>{
+    const number=Number(client.slice(1));
+    return {id:2000+number,role:'client',name:'Site coordinator '+number,client,company};
+  }),
+  ...guards.map(({id,name})=>({id,role:'guard',name,guard:id}))
+];
+const demoPassword=({role,id})=>`${{admin:'Admin',client:'Client',guard:'Guard'}[role]}-${id}-demo`;
+const loginKey=value=>String(value??'').trim().replace(/\s+/g,' ').toLowerCase();
+
+module.exports={demoAccounts,demoPassword,loginKey};
+ });
+  return {engine:sources['./model.js'],accounts:sources['./accounts.js']};
+})();
+const standaloneRequest=(()=>{
+  const {demoAccounts,demoPassword,loginKey}=offlineBundle.accounts;
+  const {seed,project,execute}=offlineBundle.engine;
+  const sessionKey='sigma-offline-account';
+  let accountId=null, connection;
+  try{accountId=Number(sessionStorage.getItem(sessionKey));}catch{}
+  function setAccount(id) {
+    accountId=id;
+    try{
+      if(id)sessionStorage.setItem(sessionKey,String(id));
+      else sessionStorage.removeItem(sessionKey);
+    }catch{}
+  }
+  function connect() {
+    connection ||= new Promise((resolve,reject)=>{
+      const request=indexedDB.open('sigma-dispatch-operations',1);
+      request.onupgradeneeded=()=>request.result.createObjectStore('schedule').put({state:seed('rush'),revision:0},'board');
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    }).catch(error=>{connection=null;throw error;});
+    return connection;
+  }
+  const response=(status,body)=>({ok:status<400,status,json:async()=>body});
+  return async function request(url,options={}) {
+    const path=new URL(url,'http://offline.local');
+    const command=options.body?JSON.parse(options.body):{};
+    if(path.pathname==='/api/login'){
+      const key=loginKey(command.login);
+      const user=demoAccounts.find(a=>[a.id,...(a.company?[a.company,a.name]:[])].some(value=>loginKey(value)===key));
+      if(!user||demoPassword(user)!==command.password)return response(401,{error:'Check your account and password.'});
+      setAccount(user.id);
+      return response(200,{account:user});
+    }
+    if(path.pathname==='/api/logout'){setAccount(null);return response(204);}
+    const user=demoAccounts.find(a=>a.id===accountId);
+    if(!user)return response(401,{error:'Sign in to continue.'});
+    const db=await connect();
+    const write=path.pathname==='/api/actions';
+    return new Promise((resolve,reject)=>{
+      const transaction=db.transaction('schedule',write?'readwrite':'readonly');
+      const table=transaction.objectStore('schedule');
+      let reply;
+      table.get('board').onsuccess=event=>{
+        const board=event.target.result;
+        try{
+          if(write){
+            if(command.revision!==board.revision||command.account!==user.id){
+              reply=response(409,{error:'The schedule changed. Review the updated board and try again.'});
+              return;
+            }
+            const result=execute(board.state,command,user);
+            const revision=board.revision+1;
+            table.put({state:result.state,revision},'board');
+            reply=response(200,{...result,...project(result.state,user),account:user,revision});
+          }else if(path.searchParams.get('since')===String(board.revision)&&path.searchParams.get('account')===String(user.id)){
+            reply=response(204);
+          }else{
+            reply=response(200,{...project(board.state,user),account:user,revision:board.revision});
+          }
+        }catch(error){reply=response(400,{error:error.message});}
+      };
+      transaction.oncomplete=()=>resolve(reply);
+      transaction.onabort=()=>reject(transaction.error||Error('Browser storage save failed.'));
+    });
+  };
+})();
+
+const minute = 60000;
+const hour = 60 * minute;
+const day = 24 * hour;
+const tiers = ['Guard','Tier 2','Supervisor'];
+let {sites,clients,guards}=typeof module!=='undefined'?require('./catalog.js'):{sites:[],clients:{},guards:[]};
+
+const guardId=id=>Number(id)>0&&Number(id)<=120?3000+Number(id):Number(id);
+const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const blocks=['Morning','Afternoon','Overnight'];
+const defaultPreferences={days:[...weekdays],blocks:[...blocks],maxHours:44,rush:true};
+
+function migrate(snapshot) {
+  if(snapshot.version===2)return snapshot;
+  for(const r of snapshot.requests){
+    for(const a of r.assignments)a.guard=guardId(a.guard);
+    if(r.cancelledGuard)r.cancelledGuard=guardId(r.cancelledGuard);
+    if(r.cancelledGuards)r.cancelledGuards=r.cancelledGuards.map(guardId);
+    r.offers=Object.fromEntries(Object.entries(r.offers).map(([id,offer])=>[guardId(id),offer]));
+  }
+  for(const leave of snapshot.leaves)leave.guard=guardId(leave.guard);
+  for(const swap of snapshot.swaps){
+    swap.guard=guardId(swap.guard);
+    if(swap.target)swap.target=guardId(swap.target);
+  }
+  snapshot.profiles={};
+  snapshot.version=2;
+  return snapshot;
+}
+
+function newRequest(id,site,when,length,need,tier,rush,notes='') {
+  return {id,site,start:when,end:when+length,need,tier,rush,notes,offers:{},assignments:[],alertCount:0};
+}
+
+function seed(){
+  const now=Date.now();
+  const surge=newRequest(1,'harbor',now+2*hour,4*hour,10,1,true,'Additional entrance coverage for an evening event. Check in at east reception.');
+  surge.supervisors=1;
+  const lobby=newRequest(2,'cedar',now+30*minute,4*hour,1,2,false,'Supervisor must collect the access log at reception.');
+  lobby.supervisors=1;
+  lobby.assignments.push({guard:3019,post:'Supervisor',at:now-hour});
+  const requests=[surge,lobby];
+  for(const [index,site] of sites.slice(2).entries()){
+    const start=now+(1+index%7)*day+(index%3)*hour;
+    const post=newRequest(index+3,site.id,start,6*hour,2,0,false,'Scheduled lobby coverage.');
+    const incumbents=guards.filter(g=>g.available&&g.licensedUntil>=post.end&&g.trained.includes(site.id)&&g.uniforms.includes(site.uniform)&&!requests.some(other=>overlaps(other,post)&&other.assignments.some(a=>a.guard===g.id)));
+    for(const guard of incumbents.slice(0,index%4===0?1:2))post.assignments.push({guard:guard.id,post:'General',at:now});
+    requests.push(post);
+  }
+  return {version:2,now,profiles:{},requests,leaves:[],swaps:[],next:101,log:[{at:now,message:'Weekly staffing requests received.'}]};
+}
+
+let data;
+const view={role:'admin',selected:1,guard:null,client:null,contact:null,search:'',status:'all',page:0,template:null,prefill:{},checked:new Set()};
+
+const byId=(id)=>data.requests.find(r=>r.id===Number(id));
+const guardBy=(id)=>guards.find(g=>g.id===Number(id));
+const siteBy=(id)=>sites.find(s=>s.id===id);
+const dateFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',year:'numeric',month:'2-digit',day:'2-digit'});const inputDate=n=>{const parts=Object.fromEntries(dateFmt.formatToParts(n).map(p=>[p.type,p.value]));return [parts.year,parts.month,parts.day].join('-');};
+const calendarDate=(date,offset)=>new Date(Date.parse(date+'T12:00Z')+offset*day).toISOString().slice(0,10);
+const clockFmt=new Intl.DateTimeFormat('en-GB',{timeZone:'America/Toronto',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});const inputTime=n=>clockFmt.format(n);
+function localTime(date,time){const base=Date.parse(date+'T'+time+'Z');for(const offset of [4,5]){const t=base+offset*hour;if(Number.isFinite(t)&&inputDate(t)===date&&inputTime(t)===time)return t;}throw Error('Choose a valid Toronto local time.');}
+const formatTime=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',hour:'numeric',minute:'2-digit',hour12:true}).format(n);
+const formatDay=(n)=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Toronto',weekday:'short',month:'short',day:'numeric'}).format(n);
+const shiftTime=(r)=>`${formatDay(r.start)} · ${formatTime(r.start)}–${inputDate(r.start)===inputDate(r.end)?'':formatDay(r.end)+' '}${formatTime(r.end)}`;
+const open=(r)=>r.need-r.assignments.length;
+const isPast=(r)=>r.start<=data.now;
+const overlaps=(a,b)=>a.start<b.end&&b.start<a.end;
+const safe=(val)=>String(val??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+
+function gap(r){return Math.max(0,(r.supervisors||0)-r.assignments.filter(a=>a.post==='Supervisor').length);}
+const calendarCache=new WeakMap();
+function requestCalendar(r){
+  if(calendarCache.has(r))return calendarCache.get(r);
+  const midnight=localTime(inputDate(r.start),'00:00');
+  const dow=(new Date(inputDate(midnight)+'T12:00Z').getUTCDay()+6)%7;
+  const dateAt=i=>new Date(Date.parse(inputDate(midnight)+'T12:00Z')+i*day).toISOString().slice(0,10);
+  const monday=localTime(dateAt(-dow),'00:00'),weekEnd=localTime(dateAt(7-dow),'00:00');
+  const bounds=Array.from({length:3},(_,i)=>localTime(dateAt(i),'00:00'));
+  const calendar={monday,weekEnd,bounds};
+  calendarCache.set(r,calendar);
+  return calendar;
+}
+function scheduleCheck(g,r){
+  const {monday,weekEnd,bounds}=requestCalendar(r);
+  const duties=data.requests.filter(x=>r.id!==x.id&&x.assignments.some(a=>a.guard===g.id));
+  const hours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd)-Math.max(x.start,monday))/hour,0);
+  const nextHours=duties.reduce((n,x)=>n+Math.max(0,Math.min(x.end,weekEnd+7*day)-Math.max(x.start,weekEnd))/hour,0);
+  const firstWeek=hours+(Math.min(r.end,weekEnd)-r.start)/hour;
+  const secondWeek=nextHours+Math.max(0,r.end-weekEnd)/hour;
+  const crossesWeek=r.end>weekEnd;
+  const projected=crossesWeek?Math.max(firstWeek,secondWeek):firstWeek;
+  const overtime=Math.max(0,firstWeek-44)-Math.max(0,hours-44)+(crossesWeek?Math.max(0,secondWeek-44)-Math.max(0,nextHours-44):0);
+  let rest=duties.some(x=>{const spacing=Math.max(x.start-r.end,r.start-x.end);return spacing>=0&&spacing<8*hour&&x.end-x.start+r.end-r.start>13*hour;});
+  for(let d=0;d<2;d++){const start=bounds[d],end=bounds[d+1];if(r.end<=start)break;
+    let cursor=start,longest=0;
+    for(const x of [...duties,r].filter(x=>x.start<end&&x.end>start).sort((a,b)=>a.start-b.start)){longest=Math.max(longest,x.start-cursor);cursor=Math.max(cursor,Math.min(end,x.end));}
+    rest ||= Math.max(longest,end-cursor)<11*hour;
+  }
+  return {rest,projected,ot:overtime,review:(g.id-3000)%23===0};
+}
+function eligibility(g,r,{forSwap=false}={}) {
+  const site=siteBy(r.site);
+  const remaining=Math.floor((r.start-data.now)/minute);
+  const reasons=[];
+  if(!forSwap&&g.tier<2&&open(r)>0&&gap(r)>=open(r))reasons.push('Supervisor post required');
+  if(r.force&&(g.id-3000)%6===0)reasons.push('MORB / use-of-force record missing');
+  if(r.vehicle&&(g.id-3000)%3!==1)reasons.push('Vehicle authorization missing');
+  const review=scheduleCheck(g,r);
+  if(review.rest)reasons.push('Rest check failed');
+  if(review.review)reasons.push('Schedule history needs review');
+  if(g.licensedUntil<r.end) reasons.push('Licence expires before shift ends');
+  if(g.tier<r.tier) reasons.push('Tier below site requirement');
+  if(!g.trained.includes(site.id)) reasons.push('Site training missing');
+  if(!g.uniforms.includes(site.uniform)) reasons.push('Required uniform unavailable');
+  if((preferencesFor(g.id).unavailable||[]).some(window=>overlaps(window,r)))reasons.push('Unavailable during this period');
+  if(!g.available) reasons.push('Marked unavailable');
+  if(data.leaves.some(l=>l.guard===g.id&&l.status==='Approved'&&overlaps(l,r))) reasons.push('Approved leave');
+  if(r.cancelledGuard===g.id||r.cancelledGuards?.includes(g.id)) reasons.push('Cancelled this shift');
+  if(r.assignments.some(a=>a.guard===g.id)) reasons.push('Already assigned here');
+  if(data.requests.some(other=>other.id!==r.id&&overlaps(r,other)&&other.assignments.some(a=>a.guard===g.id))) reasons.push('Overlapping assignment');
+  if(remaining<=0) reasons.push('Shift already started');
+  else if(travelMinutes(g,r)>remaining) reasons.push('Estimated arrival is too late');
+  if(open(r)<=0&&!forSwap) reasons.push('All positions filled');
+  return reasons;
+}
+
+function travelMinutes(g,r){
+  const site=siteBy(r.site);
+  const areaIndex=['Brampton','Mississauga','Vaughan','Toronto','Markham'].indexOf(site.area);
+  return Math.max(5,g.eta+areaIndex*(3+(g.id%8)));
+}
+const attendanceCache=new WeakMap();
+function attendance(g){
+  let index=attendanceCache.get(data);
+  if(!index){
+    index=new Map();
+    for(const r of data.requests)for(const a of r.assignments||[]){
+      if(!a.review)continue;
+      const record=index.get(a.guard)||{onTime:0,completed:0};
+      record.completed++;
+      if(a.review.arrival==='On time')record.onTime++;
+      index.set(a.guard,record);
+    }
+    attendanceCache.set(data,index);
+  }
+  const recorded=index.get(g.id);
+  const onTime=g.onTime+(recorded?.onTime||0),completed=g.completed+(recorded?.completed||0);
+  return {onTime,completed,rate:onTime/completed};
+}
+const sortedGuards=(r)=>[...guards].sort((a,b)=>r.rush?travelMinutes(a,r)-travelMinutes(b,r)||attendance(b).rate-attendance(a).rate:attendance(b).rate-attendance(a).rate||travelMinutes(a,r)-travelMinutes(b,r));
+const audit=(message)=>data.log.unshift({at:data.now,message});
+const offerFor=(r,g)=>r.offers[g.id];
+const waiting=(r)=>Object.values(r.offers).filter(o=>o.status==='Volunteered').length;
+const preferencesFor=(id)=>data.profiles[id]||defaultPreferences;
+const activeOffer=(o)=>o?.status==='Invited'&&o.expires>data.now&&(!o.replyDeadline||o.replyDeadline>Date.now());
+const availableForWave=(r)=>sortedGuards(r).filter(g=>!offerFor(r,g)&&(!r.rush||preferencesFor(g.id).rush)&&!eligibility(g,r).length);
+
+function preferenceMatches(g,r,projected) {
+  const {days,blocks:preferred,maxHours}=preferencesFor(g.id);
+  const weekday=weekdays[(new Date(inputDate(r.start)+'T12:00Z').getUTCDay()+6)%7];
+  const startHour=Number(inputTime(r.start).slice(0,2));
+  const block=startHour>=6&&startHour<12?'Morning':startHour>=12&&startHour<18?'Afternoon':'Overnight';
+  return days.includes(weekday)&&preferred.includes(block)&&projected<=maxHours;
+}
+
+function insist(condition,message) {if(!condition) throw new Error(message);}
+
+function volunteer(r,g) {
+  const existing=offerFor(r,g);
+  if(existing?.status==='Volunteered') return 'Your response is already awaiting approval.';
+  insist(!existing||activeOffer(existing),'The offer expired. Check the open shift list.');
+  const failures=eligibility(g,r);
+  insist(!failures.length,failures.join(' · '));
+  r.offers[g.id]={...existing,status:'Volunteered',at:data.now};
+  audit(`${g.name} volunteered for ${siteBy(r.site).name}.`);
+  return 'Response sent. The shift appears on your schedule after administrator approval.';
+}
+
+function closeOffers(r) {
+  for(const o of Object.values(r.offers)) if(['Invited','Volunteered'].includes(o.status)) o.status='Closed';
+}
+
+function recordEvent(r,status,guard){
+  (r.history ||= []).push({at:data.now,status,guard});
+}
+function autoWave(r){
+  if(r.rush&&open(r)>0&&!isPast(r)&&availableForWave(r).length)sendWave(r);
+}
+function assign(r,g) {
+  const failures=eligibility(g,r);
+  insist(!failures.length,failures.join(' · '));
+  insist(offerFor(r,g)?.status==='Volunteered','This guard has not volunteered.');
+  r.assignments.push({guard:g.id,post:g.tier===2&&gap(r)?'Supervisor':'General',at:data.now});
+  offerFor(r,g).status='Approved';recordEvent(r,'Approved',g.id);
+  if(!open(r)){closeOffers(r);delete r.followUp;r.escalated=false;}
+  audit(`${g.name} approved and notified for ${siteBy(r.site).name}.`);
+}
+
+function cancelAssignment(r,g,reason='Guard cancelled') {
+  insist(!isPast(r),'This shift has already started.');
+  const index=r.assignments.findIndex(a=>a.guard===g.id);
+  insist(index!==-1,'This assignment is already open.');
+  r.assignments.splice(index,1);
+  for(const s of data.swaps)if(s.shift===r.id&&s.guard===g.id&&s.status==='Pending')s.status='Declined';
+  r.cancelledGuards=[...new Set([...(r.cancelledGuards||[]),r.cancelledGuard,g.id].filter(Boolean))];
+  r.cancelledGuard=g.id;
+  for(const [id,o] of Object.entries(r.offers))if(o.status==='Closed')delete r.offers[id];
+  if(offerFor(r,g)) offerFor(r,g).status='Cancelled';
+  recordEvent(r,reason,g.id);
+  r.replacement=true;
+  r.rush ||= r.start-data.now<=2*hour;
+  autoWave(r);
+  audit(`${g.name} ${reason.toLowerCase()}. A position reopened at ${siteBy(r.site).name}.`);
+}
+
+function sendWave(r) {
+  const pool=availableForWave(r);
+  const specialists=pool.filter(g=>g.tier===2).slice(0,gap(r)*2);
+  const ranked=[...specialists,...pool.filter(g=>!specialists.includes(g))];
+  insist(pool.length,'No new eligible guards. Review the exclusions and escalate if needed.');
+  const expires=Math.min(r.start,data.now+(r.rush?5:60)*minute);
+  const invited=ranked.slice(0,Math.min(24,Math.max(3,2*open(r))));
+  const replyDeadline=r.rush?Date.now()+expires-data.now:null;
+  for(const g of invited) r.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline};
+  r.alertCount+=1;recordEvent(r,'Seeking cover');
+  audit(`Offer wave ${r.alertCount} sent to ${invited.length} eligible guards.`);
+  return `${invited.length} offers sent. Responses will appear in this request.`;
+}
+
+function eligibleSwaps(l) {
+  const r=byId(l.shift);
+  const assignment=r?.assignments.find(a=>a.guard===l.guard);
+  if(!assignment||isPast(r))return [];
+  return guards.filter(g=>(assignment.post!=='Supervisor'||g.tier===2)&&g.id!==l.guard&&!eligibility(g,r,{forSwap:true}).length);
+}
+
+function resolveChange(type,id,approve) {
+  insist(type==='leave'||type==='swap','Choose a valid schedule change.');
+  const item=(type==='leave'?data.leaves:data.swaps).find(x=>x.id===Number(id));
+  insist(item?.status==='Pending','This item was already reviewed.');
+  const g=guardBy(item.guard);
+  if(approve&&type==='leave') {
+    const affected=data.requests.filter(r=>!isPast(r)&&overlaps(item,r)&&r.assignments.some(a=>a.guard===g.id));
+    for(const r of affected) cancelAssignment(r,g,'Released for approved leave');
+    audit(`Leave approved for ${g.name}. ${affected.length} future shift positions reopened.`);
+  }
+  if(approve&&type==='swap') {
+    const r=byId(item.shift);
+    const index=r.assignments.findIndex(a=>a.guard===g.id);
+    insist(index>=0,'The original assignment has changed.');
+    insist(item.accepted,'The proposed guard must accept first.');
+    insist(eligibleSwaps(item).some(x=>x.id===item.target),'The replacement no longer meets the shift requirements.');
+    r.assignments[index]={guard:item.target,post:r.assignments[index].post,at:data.now};
+    recordEvent(r,'Swap approved',item.target);
+    audit(`Swap approved from ${g.name} to ${guardBy(item.target).name}.`);
+  }
+  if(!approve) audit(`${type==='swap'?'Swap':'Leave'} declined for ${g.name}.`);
+  item.status=approve?'Approved':'Declined';
+  return `${type==='swap'?'Swap':'Leave'} ${item.status.toLowerCase()}.`;
+}
+
+function reviewBatch(r) {
+  const selected=sortedGuards(r).sort((a,b)=>Number(b.tier===2)-Number(a.tier===2)).filter(g=>view.checked.has(g.id)&&offerFor(r,g)?.status==='Volunteered');
+  let approved=0;
+  for(const g of selected) {
+    if(eligibility(g,r).length) continue;
+    assign(r,g);
+    approved++;
+  }
+  view.checked.clear();
+  return `${approved} approved · ${selected.length-approved} skipped · ${open(r)} positions still open.`;
+}
+
+function openRequest(r) {
+  view.selected=r.id;
+  view.checked.clear();
+}
+
+const adminActions={
+  wave:sendWave,
+  escalate:r=>{
+    insist(open(r)>0,'This request is already staffed.');
+    r.escalated=true;
+    r.followUp={owner:view.contact,at:data.now,due:Math.max(data.now,Math.min(r.start,data.now+5*minute))};
+    audit(view.contact+' took responsibility for follow-up at '+siteBy(r.site).name+'.');
+    return 'You own the follow-up.';
+  },
+  approve:(r,_,extra)=>{assign(r,guardBy(extra));return 'Guard approved. Confirmation is visible in their guard view.';},
+  batch:reviewBatch,
+  cancel:(r,_,extra)=>{cancelAssignment(r,guardBy(extra),'Removed by dispatch');return 'The position is open again.';},
+  'accept-change':(_,id,extra)=>resolveChange(extra,id,true),
+  'deny-change':(_,id,extra)=>resolveChange(extra,id,false)
+};
+
+const guardActions={
+  ack:r=>{const a=r.assignments.find(a=>a.guard===view.guard);insist(a&&r.end>data.now,'Current assignment required.');a.ack=data.now;audit(guardBy(view.guard).name+' acknowledged the site brief.');return 'Acknowledgment recorded.';},
+  pool:r=>{insist(!isPast(r)&&r.assignments.some(a=>a.guard===view.guard),'Upcoming assignment required.');insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target:null,status:'Pending',accepted:false});recordEvent(r,'Swap requested',view.guard);audit('Swap opened to eligible peers.');return 'Pool open. Your assignment stays active until approval.';},
+  claim:(_,id)=>{
+    const s=data.swaps.find(x=>x.id===Number(id));
+    insist(s&&s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(x=>x.id===view.guard),'Swap unavailable.');
+    s.target=view.guard;
+    s.accepted=true;
+    s.claimedFromPool=true;
+    return 'Claim sent for approval.';
+  },
+
+  volunteer:(r)=>{
+    const g=guardBy(view.guard);
+    insist(!r.rush||(!offerFor(r,g)&&preferencesFor(g.id).rush)||activeOffer(offerFor(r,g)),'An active offer is required for this urgent shift.');
+    return volunteer(r,g);
+  },
+  decline:(r)=>{
+    const g=guardBy(view.guard);
+    insist(activeOffer(offerFor(r,g)),'This offer is no longer active.');
+    offerFor(r,g).status='Declined';recordEvent(r,'Rejected offer',g.id);
+    audit(`${g.name} declined an offer.`);
+    return 'Offer declined.';
+  },
+  'guard-cancel':(r)=>{cancelAssignment(r,guardBy(view.guard));return 'Cancellation recorded. Dispatch can now find cover.';},
+  'accept-swap':(_,id)=>{
+    const s=data.swaps.find(x=>x.id===Number(id)&&x.target===view.guard&&x.status==='Pending');
+    insist(s,'This proposal is no longer available.');
+    insist(eligibleSwaps(s).some(g=>g.id===view.guard),'You are no longer eligible for this shift.');
+    s.accepted=true;
+    audit(`${guardBy(view.guard).name} accepted a swap proposal.`);
+    return 'Acceptance sent for administrator approval.';
+  }
+};
+
+function createRequest(form) {
+  const site=siteBy(form.get('site'));
+  const start=localTime(form.get('date'),form.get('time'));
+  const length=Number(form.get('hours'))*hour;
+  const count=Number(form.get('count'));
+  const tier=Number(form.get('tier'));
+  insist(site?.client===view.client,'Choose a site belonging to this client.');
+  insist(start>data.now,'Choose a start time after the current time.');
+  insist(length>=hour/2&&length<=24*hour&&Number.isInteger(count)&&count>=1&&count<=120&&tiers[tier],'Check duration, guard count, and tier.');
+  const r=newRequest(data.next++,site.id,start,length,count,tier,form.get('rush')==='urgent'||start-data.now<=2*hour,String(form.get('notes')||'').slice(0,400));
+  r.contact=view.contact; r.dress=String(form.get('dress')||'').slice(0,160);r.source=['Phone','Email'].includes(form.get('source'))?form.get('source'):'Portal';
+  r.supervisors=Number(form.get('supervisors')||0);insist(Number.isInteger(r.supervisors)&&r.supervisors>=0&&r.supervisors<=count,'Supervisor posts must fit inside total headcount.');r.force=Boolean(form.get('force'));r.vehicle=Boolean(form.get('vehicle'));
+  data.requests.push(r);recordEvent(r,'Received');autoWave(r);
+  openRequest(r);
+  audit(`${clients[view.client]} submitted a ${r.rush?'rush':'regular'} request for ${count} guards.`);
+  view.template=null;
+  view.prefill={};
+  return 'Request submitted. Coverage will update here as assignments are approved.';
+}
+
+function leaveRange(first,last,now,leaves) {
+  insist(/^\d{4}-\d{2}-\d{2}$/.test(first)&&/^\d{4}-\d{2}-\d{2}$/.test(last)&&first>=inputDate(now)&&last>=first,'Choose valid leave dates.');
+  const start=localTime(first,'00:00');
+  localTime(last,'00:00');
+  const end=localTime(calendarDate(last,1),'00:00');
+  insist(!leaves.some(l=>l.status!=='Declined'&&overlaps(l,{start,end})),'An existing leave request overlaps those dates.');
+  return {start,end};
+}
+
+function requestLeave(form) {
+  const {start,end}=leaveRange(form.get('first'),form.get('last'),data.now,data.leaves.filter(l=>l.guard===view.guard));
+  data.leaves.push({id:data.next++,guard:view.guard,start,end,status:'Pending'});
+  audit(`${guardBy(view.guard).name} requested leave.`);
+  return 'Leave sent for administrator review.';
+}
+
+function requestSwap(form,shift) {
+  const r=byId(shift);
+  const target=Number(form.get('target'));
+  insist(r?.assignments.some(a=>a.guard===view.guard),'Only the assigned guard can propose a swap.');
+  insist(eligibleSwaps({shift:r.id,guard:view.guard}).some(g=>g.id===target),'That guard is no longer eligible.');
+  insist(!data.swaps.some(s=>s.shift===r.id&&s.guard===view.guard&&s.status==='Pending'),'There is already a pending swap for this assignment.');
+  data.swaps.push({id:data.next++,shift:r.id,guard:view.guard,target,status:'Pending',accepted:false});
+  recordEvent(r,'Swap requested',view.guard);audit(`${guardBy(view.guard).name} proposed a swap.`);
+  return 'Swap proposed. Your assignment stays active while it is under review.';
+}
+
+function savePreferences(fields) {
+  const {days,blocks:preferred,maxHours,rush}=fields;
+  insist(Array.isArray(days)&&days.every(day=>weekdays.includes(day))&&Array.isArray(preferred)&&preferred.every(block=>blocks.includes(block)),'Choose valid working days and shift blocks.');
+  insist(Number.isFinite(maxHours)&&maxHours>=1&&maxHours<=168&&typeof rush==='boolean','Choose a weekly hours target from 1 to 168.');
+  data.profiles[view.guard]={...preferencesFor(view.guard),days:[...new Set(days)],blocks:[...new Set(preferred)],maxHours,rush};
+  return 'Working preferences saved.';
+}
+
+function project(snapshot,account) {
+  data=migrate(snapshot); data.now=Date.now();
+  if(account.role==='admin')return {state:data,catalog:{sites,clients,guards}};
+  if(account.role==='client'){
+    const clientSites=sites.filter(site=>site.client===account.client);
+    const requests=data.requests.filter(r=>siteBy(r.site).client===account.client).map(r=>{
+      const {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact}=r;
+      return {id,site,start,end,need,tier,rush,notes,supervisors,force,vehicle,replacement,contact,timeline:(r.history||[]).filter(e=>['Received','Seeking cover','Approved','Guard cancelled','Removed by dispatch','Released for approved leave','Revised shift listed','Rescheduled by dispatch'].includes(e.status)).map(e=>({at:e.at,status:['Guard cancelled','Removed by dispatch','Released for approved leave'].includes(e.status)?'Post reopened':e.status})),dress:r.dress,source:r.source,progress:!r.need?'Rescheduled':r.assignments.length===r.need?'Fully staffed':r.assignments.length?'Partially staffed':r.alertCount?'Seeking cover':'Listed for guards',updated:r.history?.at(-1)?.at,supervisorGap:gap(r),confirmed:r.assignments.length};
+    });
+    return {state:{now:data.now,requests},catalog:{sites:clientSites,clients:{[account.client]:clients[account.client]},guards:[]}};
+  }
+  const g=guardBy(account.guard);
+  const requests=[];
+  for(const r of data.requests){
+    const mine=r.assignments.find(a=>a.guard===g.id);
+    const offer=offerFor(r,g);
+    const invited=activeOffer(offer);
+    const volunteered=offer?.status==='Volunteered'&&!isPast(r);
+    const canVolunteer=(!offer&&(!r.rush||preferencesFor(g.id).rush)||invited)&&!eligibility(g,r).length;
+    const pendingSwap=data.swaps.some(s=>s.shift===r.id&&s.guard===g.id&&s.status==='Pending');
+    if(!(mine&&r.end>data.now)&&!invited&&!volunteered&&!canVolunteer)continue;
+    const {area,uniform,name,notes}=siteBy(r.site);
+    const location=mine?{area,uniform,name,notes,brief:r.notes,dress:r.dress}:{area,uniform,dress:r.dress};
+    const peers=mine&&!pendingSwap?eligibleSwaps({shift:r.id,guard:g.id}).map(({id,name})=>({id,name})):[];
+    requests.push({id:r.id,start:r.start,end:r.end,rush:r.rush,location,eta:travelMinutes(g,r),mine,offer:invited||volunteered?offer:null,canVolunteer,pendingSwap,peers});
+  }
+  const poolSwaps=data.swaps.filter(s=>s.status==='Pending'&&!s.target&&eligibleSwaps(s).some(peer=>peer.id===g.id)).map(s=>{
+    const {start,end,site}=byId(s.shift);
+    const {area,uniform}=siteBy(site);
+    return {id:s.id,start,end,location:{area,uniform}};
+  });
+  const swaps=data.swaps.filter(s=>s.guard===g.id||s.target===g.id).map(s=>({
+    id:s.id,start:byId(s.shift).start,status:s.status,incoming:s.target===g.id,accepted:s.accepted,claimedFromPool:s.claimedFromPool,
+    peer:guardBy(s.target===g.id?s.guard:s.target)?.name
+  }));
+  const notices=data.requests.flatMap(r=>(r.history||[]).filter(e=>e.guard===g.id&&['Removed by dispatch','Rescheduled by dispatch','Released for approved leave'].includes(e.status)).map(e=>({at:e.at,status:e.status,site:siteBy(r.site).name,start:r.start}))).sort((a,b)=>b.at-a.at).slice(0,5);
+  const state={now:data.now,notices,requests,poolSwaps,swaps,leaves:data.leaves.filter(l=>l.guard===g.id),profile:preferencesFor(g.id),eta:g.eta};
+  return {state,catalog:{sites:[],clients:{},guards:[]}};
+}
+
+if(typeof module!=='undefined') module.exports={
+  seed,migrate,project,
+  execute(snapshot, command, account) {
+    data=migrate(structuredClone(snapshot)); data.now=Date.now();
+    const {role,client,guard,name:contact}=account;
+    const {action,id,extra,fields={}}=command;
+    Object.assign(view,{role,client,guard,contact,checked:new Set(role==='admin'&&Array.isArray(command.checked)?command.checked:[])});
+    const form=new Map(Object.entries(fields));
+    const shift=byId(id);
+    let message;
+    if(role==='admin'&&action==='adjust-assignment'){
+      const g=guardBy(extra);
+      const assigned=shift?.assignments.find(a=>a.guard===g?.id);
+      insist(assigned&&!isPast(shift),'Upcoming assignment required.');
+      const start=localTime(fields.date,fields.time),duration=Number(fields.hours)*hour;
+      insist(start>data.now&&duration>=hour/2&&duration<=24*hour,'Choose a future start and a valid duration.');
+      insist(start!==shift.start||start+duration!==shift.end,'Choose a different time or duration.');
+      const moved=newRequest(data.next++,shift.site,start,duration,1,shift.tier,start-data.now<=2*hour,shift.notes);
+      Object.assign(moved,{dress:shift.dress,force:shift.force,vehicle:shift.vehicle,contact:shift.contact,source:shift.source,supervisors:Number(assigned.post==='Supervisor')});
+      shift.assignments=shift.assignments.filter(a=>a!==assigned);
+      shift.need--;shift.supervisors=Math.max(0,(shift.supervisors||0)-moved.supervisors);
+      if(shift.offers[g.id])shift.offers[g.id].status='Rescheduled';
+      for(const swap of data.swaps)if(swap.shift===shift.id&&swap.guard===g.id&&swap.status==='Pending')swap.status='Declined';
+      recordEvent(shift,'Rescheduled by dispatch',g.id);
+      data.requests.push(moved);recordEvent(moved,'Revised shift listed',g.id);
+      if(!eligibility(g,moved).length&&(!moved.rush||preferencesFor(g.id).rush)){
+        const expires=Math.min(start,data.now+(moved.rush?5:60)*minute);
+        moved.offers[g.id]={status:'Invited',at:data.now,expires,replyDeadline:moved.rush?expires:null};
+      }
+      autoWave(moved);openRequest(moved);audit(view.contact+' revised the post for '+g.name+'. Fresh acceptance required.');
+      message='Revised shift listed for fresh acceptance.';
+    }else if(role==='admin'&&action==='review-duty'){
+      const assignment=shift?.assignments.find(a=>a.guard===Number(extra));
+      insist(assignment&&shift.end<=data.now,'Choose a completed assignment.');
+      insist(['On time','Late'].includes(fields.arrival)&&['Accepted','Needs correction'].includes(fields.report),'Choose attendance and report outcomes.');
+      insist(typeof fields.note==='string'&&fields.note.trim(),'Enter the review basis.');
+      assignment.review={arrival:fields.arrival,report:fields.report,note:String(fields.note||'').slice(0,200),by:contact,at:data.now};
+      recordEvent(shift,'Duty review saved',Number(extra));
+      message='Duty record saved.';
+    }else if(role==='admin'&&action==='call-note'){
+      const g=guardBy(extra);
+      insist(shift&&g&&['No answer','Unavailable','Will review offer'].includes(fields.outcome),'Choose a guard and outcome.');
+      recordEvent(shift,fields.outcome,g.id);audit(view.contact+' logged phone follow-up with '+g.name+': '+fields.outcome);
+      message='Follow-up recorded.';
+    }else if(role==='client'&&action==='create-request') message=createRequest(form);
+    else if(role==='guard'&&action==='leave-request') message=requestLeave(form);
+    else if(role==='guard'&&action==='swap-request') message=requestSwap(form,id);
+    else if(role==='guard'&&action==='unavailable'){
+      const start=localTime(fields.date,fields.from),end=localTime(fields.endDate,fields.to);
+      insist(start<end&&end>data.now,'Choose an unavailable period ending in the future.');
+      const profile=preferencesFor(guard);
+      insist(!data.requests.some(r=>r.assignments.some(a=>a.guard===guard)&&overlaps(r,{start,end})),'An assigned shift overlaps. Request a swap or report the cancellation first.');
+      const windows=(profile.unavailable||[]).filter(w=>w.end>data.now);
+      insist(!windows.some(w=>overlaps(w,{start,end})),'An unavailable period already overlaps these dates.');
+      data.profiles[guard]={...profile,unavailable:[...windows,{start,end}]};message='Unavailable period saved.';
+    }else if(role==='guard'&&action==='remove-window'){
+      const profile=preferencesFor(guard);
+      data.profiles[guard]={...profile,unavailable:(profile.unavailable||[]).filter(w=>w.start!==Number(id))};message='Unavailable period removed.';
+    }else if(role==='guard'&&action==='preferences') message=savePreferences(fields);
+    else{
+      const actions=role==='admin'?adminActions:role==='guard'?guardActions:{};
+      insist(Object.hasOwn(actions,action),'Unavailable action.');
+      if(action==='advance') insist(Number(id)===5,'Choose a five minute step.');
+      if(['cancelSupervisor','fast','wave','replies','escalate','approve','batch','cancel','ack','pool','volunteer','decline','guard-cancel'].includes(action))insist(shift,'Shift unavailable.');
+      if(['approve','cancel'].includes(action))insist(guardBy(extra),'Unknown guard.');
+      message=actions[action](shift,id,extra);
+    }
+    return {state:data,message,selected:view.selected,checked:[...view.checked]};
+  }
+};
+
+
+const button=(label,action,id='',extra='',style='')=>`<button type="button" class="button ${style}" data-action="${action}" data-id="${id}" data-extra="${extra}">${label}</button>`;
+const tag=(label,style='')=>`<span class="tag ${style}">${label}</span>`;
+const empty=(label)=>`<div class="empty">${label}</div>`;
+const option=(value,label,selected)=>`<option value="${safe(value)}"${value===selected?' selected':''}>${safe(label)}</option>`;
+const confirmedCount=r=>r.confirmed??r.assignments.length;
+const statusOf=(r)=>r.need===0?tag('Rescheduled'):confirmedCount(r)===r.need?tag('Covered','good'):isPast(r)?tag('Coverage missed','rush'):r.replacement?tag('Replacement','rush'):r.rush?tag('Urgent','rush'):tag('Open');
+const meter=(r)=>`<div class="progress" role="progressbar" aria-label="Confirmed guards" aria-valuenow="${confirmedCount(r)}" aria-valuemax="${r.need}"><div style="width:${r.need?100*confirmedCount(r)/r.need:0}%"></div></div>`;
+const coverage=(r)=>`${confirmedCount(r)} of ${r.need} confirmed`;
+const requestsForClient=()=>data.requests.filter(r=>siteBy(r.site).client===view.client);
+
+function hero(role,title,description) {
+  return `<div class="hero"><div><p class="eyebrow">${role}</p><h1>${title}</h1><p class="muted">${description}</p></div></div>`;
+}
+
+function render() {
+  document.querySelector('#account').innerHTML=`<span>${safe(account.name)} · ${account.id}</span>${button('Sign out','logout')}`;
+  const command=document.querySelector('#command');
+  command.innerHTML='<span class="small muted">Toronto time</span><span class="clock">'+formatTime(Date.now())+'</span>';
+  document.querySelector('#screen').innerHTML=({admin:adminView,guard:guardView,client:clientView})[view.role]();if(view.role==='client')priority();
+  renderChat();
+  updateRushCountdown();
+}
+
+function priority(){const f=document.querySelector('#create-request')?.elements;if(!f)return;let note='';try{const diff=localTime(f.date.value,f.time.value)-data.now;note=diff<=0?'Choose a future start.':diff<=2*hour?'Starts within two hours. Automatically flagged as urgent.':f.rush.value==='urgent'?'Urgent dispatch requested.':'Regular dispatch.';}catch{}document.querySelector('#priority-note').textContent=note;}
+document.addEventListener('input',priority);
+function announce(message,error=false) {
+  document.querySelector('#notice').innerHTML=message?`<p class="notice${error?' error':''}">${safe(message)}</p>`:'';
+}
+
+function adminView() {
+  const active=data.requests.filter(r=>!isPast(r));
+  const metrics=[['Open positions',active.reduce((sum,r)=>sum+open(r),0)],['Urgent requests',active.filter(r=>r.rush&&open(r)).length],['Awaiting review',active.reduce((sum,r)=>sum+waiting(r),0)+[...data.leaves,...data.swaps].filter(x=>x.status==='Pending').length]];
+  const r=byId(view.selected);
+  return `${hero('Administrator','Dispatch board','Review coverage, approve assignments, and manage schedule changes.')}
+    <div class="stats secondary-metrics">${metrics.map(([label,value])=>`<div class="metric"><strong>${value}</strong><span>${label}</span></div>`).join('')}</div>
+    ${weekBoard()}<div class="grid dispatch-grid ${view.mobileDetail?"detail-open":""}"><div class="queue-column"><section class="card"><div class="section-top"><h2>Coverage queue</h2><select id="status-filter" aria-label="Filter coverage">${option('all','All requests',view.status)}${option('open','Open',view.status)}${option('rush','Urgent',view.status)}${option('covered','Covered',view.status)}</select></div><input type="search" id="queue-search" placeholder="Search sites" aria-label="Search sites" value="${safe(view.search)}"><div class="stack" id="queue-results" style="margin-top:10px">${queueResults()}</div></section>${changePanel()}</div>
+    <div class="request-column">${button("Back to queue","back-queue","","","mobile-back")}<div id="decision">${r?requestPanel(r):empty('Select a request to review coverage.')}</div>${activityPanel()}</div></div>`;
+}
+
+function queueDecision(r){
+  if(!r.need)return 'Rescheduled';
+  if(!open(r))return r.assignments.filter(a=>!a.ack).length+' briefs unread';
+  if(isPast(r))return 'Coverage missed';
+  const offers=Object.values(r.offers);
+  if(waiting(r))return waiting(r)+' awaiting review';
+  if(offers.some(activeOffer))return 'Awaiting guard replies';
+  if(offers.some(o=>o.status==='Invited'))return 'Wave expired · follow up';
+  return gap(r)?gap(r)+' supervisor needed':open(r)+' positions open';
+}
+
+function queueResults() {
+  const list=data.requests.filter(r=>{
+    const statusMatches=view.status==='all'||view.status==='open'&&open(r)||view.status==='rush'&&r.rush&&open(r)||view.status==='covered'&&!open(r);
+    return statusMatches&&siteBy(r.site).name.toLowerCase().includes(view.search.toLowerCase());
+  }).sort((a,b)=>Number(Boolean(open(b)&&b.rush&&!isPast(b)))-Number(Boolean(open(a)&&a.rush&&!isPast(a)))||a.start-b.start);
+  const pageSize=6;
+  const offset=view.page*pageSize;
+  if(!list.length) return empty('No requests match these filters.');
+  return list.slice(offset,offset+pageSize).map(r=>`<button type="button" class="list-button" data-action="select" data-id="${r.id}" aria-pressed="${r.id===view.selected}"><span class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</span><span class="row muted small"><span>${formatDay(r.start)} · ${formatTime(r.start)}</span><span>${coverage(r)}</span></span><strong class="small">${queueDecision(r)}</strong> ${r.followUp&&open(r)?'<span class="small">Follow-up: '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':formatTime(r.followUp.due))+'</span>':''}</button>`).join('')+(list.length>pageSize?`<div class="row small muted"><span>${offset+1}–${Math.min(offset+pageSize,list.length)} of ${list.length}</span><span class="actions">${view.page?button('Previous','page',-1):''}${offset+pageSize<list.length?button('Next','page',1):''}</span></div>`:'');
+}
+
+function requestPanel(r) {
+  const site=siteBy(r.site);
+  const remaining=Math.floor((r.start-data.now)/minute);
+  const pool=availableForWave(r);
+  if(gap(r))pool.sort((a,b)=>Number(b.tier===2)-Number(a.tier===2));
+  const preferred=pool.filter(g=>preferenceMatches(g,r,scheduleCheck(g,r).projected)).length;
+  const volunteers=sortedGuards(r).filter(g=>offerFor(r,g)?.status==='Volunteered');
+  const sent=Object.values(r.offers).filter(o=>o.expires).length;
+  const invited=Object.values(r.offers).filter(activeOffer).length;
+  const selected=volunteers.filter(g=>view.checked.has(g.id));
+  const unread=r.assignments.filter(a=>!a.ack).length;
+  const outstanding=Object.values(r.offers).filter(activeOffer);
+  const deadline=outstanding.length?Math.min(...outstanding.map(o=>Math.min(o.expires,o.replyDeadline||Infinity))):0;
+  const expired=Object.values(r.offers).some(o=>o.status==='Invited'&&!activeOffer(o));
+  const reviewable=volunteers.filter(g=>!eligibility(g,r).length);
+  const headline=!open(r)?(unread?unread+' site brief'+(unread===1?'':'s')+' awaiting acknowledgment':'All assigned guards acknowledged the brief'):isPast(r)?'Shift started with a vacancy':reviewable.length?'Review '+reviewable.length+' volunteer'+(reviewable.length===1?'':'s'):invited?'Waiting for replies until '+formatTime(deadline):expired?'Wave expired · 0 active replies':gap(r)?gap(r)+' supervisor needed':open(r)+' positions to fill';
+  const blocker=r.escalated?(r.followUp?'Follow-up owned by '+safe(r.followUp.owner)+' · '+(r.followUp.due<=data.now?'due now':'due by '+formatTime(r.followUp.due)):'Manual follow-up flagged · owner needed.'):!open(r)?'Coverage complete. Confirmed guards can see site instructions.':isPast(r)?'Shift started with unfilled positions.':!pool.length&&!invited&&!volunteers.length?'No eligible replies or new guards. Take follow-up.':'';
+  return `<section class="card"><div class="section-top"><div><div class="wrap">${statusOf(r)}${remaining>0&&remaining<=120&&open(r)?tag(`${remaining} min to start`,'warn'):''}</div><h2 style="margin-top:8px">${site.name}</h2><strong class="decision-title">${headline}</strong><p class="sub">${shiftTime(r)} · ${tiers[r.tier]} or higher · ${site.uniform}</p>${r.dress?`<p class="sub">Dress code � ${safe(r.dress)}</p>`:''}${r.source?`<p class="sub">Received via ${safe(r.source)}</p>`:''}${r.contact?`<p class="sub">Requested by ${safe(r.contact)}</p>`:''}</div></div>
+  <div class="row"><strong>${coverage(r)}</strong><span class="muted small">${open(r)} open · ${gap(r)} supervisor needed · ${sent} invited · ${invited} awaiting reply · ${r.assignments.length-unread}/${r.assignments.length} briefs acknowledged</span></div>${meter(r)}
+  ${r.force||r.vehicle?tag([r.force?'Use-of-force check':'',r.vehicle?'Vehicle / key / lockbox check':''].filter(Boolean).join(' · '),'warn'):''}${blocker?`<p class="sub">${blocker}</p>`:''}
+  ${r.replacement&&gap(r)&&!isPast(r)?`<p class="sub">${gap(r)===1?'A replacement supervisor is required.':`${gap(r)} replacement supervisors are required.`}</p>`:''}
+  <div class="actions form-actions">${reviewable.length?button('Review volunteers','jump-review',r.id,'','primary'):!open(r)&&unread?button('Check unread briefs','jump-briefs',r.id,'','primary'):''}${open(r)&&!isPast(r)&&pool.length?button(r.rush?'Send offer wave':'Send regular offers','wave',r.id,'',reviewable.length||invited?'':'primary'):''}${open(r)&&r.followUp?.owner!==account.name?button(r.followUp?'Take over follow-up':'Take follow-up','escalate',r.id):''}</div>
+   ${invited?'<details class="details" id="invited"><summary>Invited guards · '+invited+'</summary><div class="wrap">'+Object.entries(r.offers).filter(([,o])=>activeOffer(o)).map(([id])=>tag(guardBy(id).name+' · '+id+' · '+(data.phoneGuards?.includes(Number(id))?'Phone registered':'No registered phone'))).join('')+'</div></details>':''}
+  <hr class="divider"><div class="section-top"><div><h3 id="volunteer-review" tabindex="-1">Volunteers to review</h3><p class="sub">${r.rush?'Ranked by estimated travel time, then reliability.':'Ranked by reliability, then estimated travel time.'} Area travel estimates and on-time records use fictional data.</p><p class="sub">Rest checks and schedule-history flags can block approval. Projected overtime is shown before approval.</p></div>${selected.length?button(`Approve selected (${selected.length})`,'batch',r.id,'','primary'):''}</div>
+  ${volunteers.length?`<div class="table-wrap"><table><thead><tr><th scope="col">Guard</th><th scope="col">Travel</th><th scope="col">Reliability</th><th scope="col">Hours on this board</th><th scope="col">Preferences</th><th scope="col">Decision</th></tr></thead><tbody>${volunteers.map(g=>{
+    const reasons=eligibility(g,r);
+    const {projected,ot}=scheduleCheck(g,r);
+    const matches=preferenceMatches(g,r,projected);
+    return `<tr><td>${!reasons.length?`<input type="checkbox" class="pick" aria-label="Select ${g.name}" value="${g.id}" ${view.checked.has(g.id)?'checked':''}> `:''}<strong>${g.name}</strong><br><span class="muted">${tiers[g.tier]}</span></td><td>Est. ${travelMinutes(g,r)} min · ${remaining-travelMinutes(g,r)<=10?tag((remaining-travelMinutes(g,r))+" min margin · verify arrival","warn"):(remaining-travelMinutes(g,r))+" min margin"}</td><td>${attendance(g).onTime}/${attendance(g).completed} on time</td><td>${projected} h projected<br>${ot?tag(`${ot} h added overtime`,'warn'):'0 h added overtime'}</td><td>${tag(matches?'Match':'Outside target',matches?'good':'')}</td><td>${reasons.length?tag(reasons[0],'warn'):button('Approve','approve',r.id,g.id)}</td></tr>`;
+  }).join('')}</tbody></table></div>`:empty('Responses will appear here for administrator approval.')}
+  ${open(r)&&!isPast(r)?`<details id="eligibility" class="details"><summary>Eligibility checks</summary><p class="sub">${preferred} of ${pool.length} available for the next wave match their working preferences.</p><p class="sub">${guards.filter(g=>eligibility(g,r).length).length} distinct guards excluded. Reasons may overlap.</p>${exclusionSummary(r)}</details>`:''}
+  ${operationsTools(r)}${r.assignments.length?`<details id="assigned-briefs" class="details"><summary>Confirmed assignments · ${r.assignments.length}</summary>${r.assignments.map(a=>`<div class="row entry small"><span>${guardBy(a.guard).name} · ${a.post||tiers[r.tier]} · ${a.guard}</span><span>${a.ack?'Brief acknowledged at '+formatTime(a.ack):'Brief unread'} · ${formatTime(a.at)} ${!isPast(r)?button('Remove assignment','cancel',r.id,a.guard,'danger'):''}</span></div>`).join('')}</details>`:''}</section>`;
+}
+
+function exclusionSummary(r) {
+  const sample=guards.filter(g=>eligibility(g,r).length);
+  const groups={};
+  for(const g of sample) for(const reason of eligibility(g,r)) groups[reason]=(groups[reason]||0)+1;
+  return `<div class="wrap">${Object.entries(groups).map(([label,count])=>tag(`${label} · ${count}`)).join('')||tag('All guards eligible','good')}</div>`;
+}
+
+function changePanel() {
+  const pending=[...data.leaves.map(x=>({...x,type:'leave'})),...data.swaps.map(x=>({...x,type:'swap'}))].filter(x=>x.status==='Pending');
+  return `<section class="card"><div class="section-top"><h2>Schedule changes</h2>${tag(pending.length+' pending')}</div>${pending.length?pending.map(x=>`<div class="entry"><strong>${guardBy(x.guard).name}</strong><p class="sub">${x.type==='leave'?`Leave · ${formatDay(x.start)}–${formatDay(x.end-day)}`:`Swap to ${(guardBy(x.target)?.name||'eligible pool')} · ${x.accepted?'accepted by guard':'awaiting guard acceptance'} · ${shiftTime(byId(x.shift))}`}</p><div class="actions">${x.type==='leave'||x.accepted?button('Approve','accept-change',x.id,x.type,'primary'):''}${button('Decline','deny-change',x.id,x.type)}</div></div>`).join(''):empty('New leave and swap requests will appear here.')}</section>`;
+}
+
+function activityPanel() {
+  return `<section class="card"><div class="section-top"><h2>Activity log</h2></div><div class="activity">${data.log.map(a=>`<div class="entry small"><strong>${formatTime(a.at)}</strong> <span class="muted">${safe(a.message)}</span></div>`).join('')}</div></section>`;
+}
+
+function clientView() {
+  const list=requestsForClient().sort((a,b)=>Number(b.end>data.now)-Number(a.end>data.now)||Number(b.confirmed<b.need)-Number(a.confirmed<a.need)||a.start-b.start);
+  const f=view.prefill;
+  const visibleSites=sites.filter(s=>s.client===view.client);
+  return `${hero('Client','Request coverage','Submit coverage needs and track confirmations for your sites.')}
+  <div class="grid equal">  <section class="card"><div class="section-top"><h2>${clients[view.client]} requests</h2></div><div class="stack">${list.length?list.map(r=>`<div class="list-button"><div class="row"><strong>${siteBy(r.site).name}</strong>${statusOf(r)}</div><p class="sub">${shiftTime(r)}</p>${meter(r)}<p class="sub">${safe(r.progress||"Received")}${r.updated?" · "+formatDay(r.updated)+" "+formatTime(r.updated):""}</p><div class="row small"><strong>${coverage(r)}${r.supervisorGap?' · '+r.supervisorGap+' supervisor outstanding':''}</strong>${button('Repeat request','repeat',r.id)}</div>${r.timeline?.length?`<details><summary>Coverage timeline</summary>${r.timeline.map(e=>`<p>${formatDay(e.at)} � ${formatTime(e.at)} � ${safe(e.status)}</p>`).join('')}</details>`:''}</div>`).join(''):empty('Your submitted requests will appear here.')}</div></section><details id="request-compose" class="card" ${view.template?"open":""}><summary>Request more guards</summary><div class="section-top"><h2>${view.template?'Repeat a request':'New request'}</h2><span class="small muted">${safe(account.name)}</span></div>
+  <details class="details"><summary>Paste fictional client email</summary><textarea id="email" rows="3" aria-label="Client email" placeholder="Need 10 extra guards at Maple in two hours for 4 hours"></textarea> ${button("Extract draft","extract")}</details><form id="create-request"><div class="fields"><label class="full">Site<select name="site" required>${visibleSites.map(s=>option(s.id,s.name,f.site)).join('')}</select></label>
+  <label>Start date<input type="date" name="date" min="${inputDate(data.now)}" value="${inputDate(data.now+2*hour)}" required></label><label>Start time<input type="time" name="time" value="${inputTime(data.now+2*hour)}" required></label>
+  <label>Duration (hours)<input type="number" name="hours" min="0.5" max="24" step="0.5" value="${f.hours??4}" required></label><label>Guards needed<input type="number" name="count" min="1" max="120" value="${f.count??1}" required></label>
+  <details class="full" id="specialist-fields"><summary>Specialist staffing and priority</summary><div class="fields"><label>Supervisor posts included<input name="supervisors" type="number" min="0" value="${f.supervisors||0}" required></label><label>Special requirements<span><input type="checkbox" name="force" ${f.force?'checked':''}> Use of force / MORB</span><span><input type="checkbox" name="vehicle" ${f.vehicle?'checked':''}> Vehicle / lockbox</span></label><label>Minimum tier<select name="tier">${tiers.map((tier,i)=>option(i,tier,f.tier??0)).join('')}</select></label><label>Priority<select name="rush">${option('regular','Regular',f.rush)}${option('urgent','Urgent',f.rush)}</select></label></div></details>
+  <label>Request channel<select name="source"><option>Portal</option><option>Email</option><option>Phone</option></select></label><label>Dress code<input name="dress" maxlength="160" value="${safe(f.dress||'')}"></label><label class="full">Site instructions<textarea name="notes" rows="2" maxlength="400" placeholder="Use fictional details only">${safe(f.notes)}</textarea></label></div><p id="priority-note" class="sub" aria-live="polite"></p><button class="button primary">Submit request</button>${view.template?' '+button('Clear template','clear-template'):''}</form></details>
+</div>`;
+}
+
+function parseRequestDraft(msg) {
+  const count=msg.match(/\b(\d+)\s*(?:extra\s+)?(?:guards?|people|guys)\b/i);
+  const supervisors=msg.match(/\b(\d+)\s*supervisors?\b/i);
+  const time=msg.match(/\b(?:at|by|from)\s+(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/i);
+  const duration=msg.match(/\bfor\s+(\d+(?:\.\d+)?)\s*hours?\b/i);
+  const relative=msg.match(/\bin\s+(\d+(?:\.\d+)?|[a-z]+)\s+hours?\b/i);
+  const hourWords=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
+  const amount=relative?.[1].toLowerCase()||'0';
+  const delay=/^\d/.test(amount)?Number(amount):hourWords.indexOf(amount);
+  const relativeStart=new Date(Math.ceil((data.now+delay*hour)/minute)*minute);
+  const useRelative=!time&&delay>0&&Number.isFinite(relativeStart.getTime());
+  const words=new Set(msg.toLowerCase().match(/[a-z]+/g));
+  const mentioned=sites.filter(site=>words.has(site.name.split(' ')[0].toLowerCase())||words.has(site.area.toLowerCase()));
+  const [site]=mentioned;
+  return {
+    site:mentioned.length===1?site.id:'',
+    count:count?.[1]||'',
+    supervisors:supervisors?.[1]||0,
+    hours:duration?.[1]||'',
+    date:useRelative?inputDate(relativeStart):words.has('tomorrow')?inputDate(data.now+day):words.has('today')?inputDate(data.now):'',
+    time:useRelative?inputTime(relativeStart):time?String(Number(time[1])%12+(time[3].toLowerCase()==='pm'?12:0)).padStart(2,'0')+':'+(time[2]||'00'):'',
+    tier:0,
+    force:/\b(?:use[\s-]+of[\s-]+force|morb)\b/i.test(msg),
+    vehicle:/\b(?:vehicles?|lock[\s-]?box(?:es)?|mobile patrol)\b/i.test(msg),
+    rush:'regular'
+  };
+}
+
+function extractEmailDraft(msg,fields) {
+  const draft=parseRequestDraft(msg);fields.source.value="Email";
+  for(const key of ['site','count','supervisors','hours','date','time'])fields[key].value=draft[key];
+  fields.force.checked=draft.force;
+  fields.vehicle.checked=draft.vehicle;
+  priority();
+  announce(draft.site?'Draft extracted. Review before submitting.':'Choose a site for this account and review the extracted draft.');
+}
+
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button[data-action]');
+  if(!target) return;
+  const {action,id,extra}=target.dataset;
+  if(action==='logout'){signOut();return;}
+  if(!account)return;
+  if(handleChatAction(action,id))return;
+  if(action==='guard-tab'){view.guardTab=id;render();window.scrollTo(0,0);document.querySelector(`[data-action=guard-tab][data-id="${id}"]`)?.focus();return;}
+  if(action==='alert-device'&&view.role==='guard'){toggleRushSound();return;}
+  const r=byId(id);
+  if(action==='extract'&&view.role==='client'){
+    extractEmailDraft(document.querySelector('#email').value,document.querySelector('#create-request').elements);
+    return;
+  }
+  if(action==='week'){view.weekOpen=true;view.weekOffset=(view.weekOffset||0)+Number(id);render();return;}
+  if(action==='cancel'&&!confirm('Remove this assignment and reopen the post?'))return;
+  if(action==='remove-window'){submitAction(action,id);return;}
+  if(action==='phone-alert'){managePhoneAlerts();return;}
+  if(action==='reset'){if(confirm('Reset to the original fictional scenario?')) submitAction('reset','',data.scenario);return;}
+  if(action==='jump-review'){document.querySelector('#volunteer-review')?.focus();return;}
+  if(action==='jump-briefs'){const details=document.querySelector('#assigned-briefs');if(details){details.open=true;details.querySelector('summary').focus();}return;}
+  if(action==='back-queue'){view.mobileDetail=false;render();document.querySelector('[data-action="select"][aria-pressed="true"]')?.focus();return;}
+  if(action==='select'&&r){view.mobileDetail=true;openRequest(r);render();announce('');return;}
+  if(action==='page'){view.page+=Number(id);document.querySelector('#queue-results').innerHTML=queueResults();return;}
+  if(action==='repeat'&&r&&view.role==='client'&&requestsForClient().includes(r)){
+    view.template=r.id;
+    view.prefill={dress:r.dress,supervisors:r.supervisors,force:r.force,vehicle:r.vehicle,site:r.site,tier:r.tier,hours:(r.end-r.start)/hour,count:r.need,rush:'regular',notes:r.notes};
+    render();document.querySelector('#create-request input').focus();return;
+  }
+  if(action==='clear-template'){view.template=null;view.prefill={};render();return;}
+  const actions=view.role==='admin'?adminActions:view.role==='guard'?guardActions:{};
+  const special=action==='accept-change'&&extra==='swap'?byId(data.swaps.find(x=>x.id===Number(id))?.shift):r;
+  if(['approve','batch','accept-change'].includes(action)&&(special?.vehicle||special?.force)&&!confirm('Have you verified the special post requirements and selected credentials?'))return;
+  if(Object.hasOwn(actions,action)) submitAction(action,id,extra);
+});
+
+document.addEventListener('input',event=>{
+  if(event.target.id!=='queue-search') return;
+  view.search=event.target.value;
+  view.page=0;
+  document.querySelector('#queue-results').innerHTML=queueResults();
+});
+
+document.addEventListener('change',event=>{
+  const el=event.target;
+  if(el.id==='scenario'){if(confirm('Replace the shared schedule with this scenario?')) submitAction('reset','',el.value);else render();return;}
+  if(el.id==='status-filter'){view.status=el.value;view.page=0;document.querySelector('#queue-results').innerHTML=queueResults();return;}
+  if(el.classList.contains('pick')){
+    if(el.checked)view.checked.add(Number(el.value));
+    else view.checked.delete(Number(el.value));
+    render();
+    document.querySelector(`.pick[value="${Number(el.value)}"]`)?.focus();
+  }
+});
+
+
+document.addEventListener('submit',event=>{
+  event.preventDefault();
+  const form=event.target;
+  if(form.id==='login'){signIn(form);return;}
+  if(!account)return;
+  const values=new FormData(form);
+  if(form.id==='find-record'){const g=guardBy(Number(values.get('guard')));if(!g){announce('Unknown guard ID.',true);return;}view.recordGuard=g.id;view.recordOpen=true;render();return;}
+  if(form.id==='review-duty'){submitAction('review-duty',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
+  if(form.id==='call-log'){submitAction('call-note',form.dataset.request,form.dataset.guard,Object.fromEntries(values));return;}
+  if(form.id==='adjust-form'){submitAction('adjust-assignment',form.dataset.request,values.get('guard'),Object.fromEntries(values));return;}
+  if(form.id==='chat-form'){
+    const prompt=String(values.get('prompt')).trim();
+    if(prompt){form.reset();askSigma(prompt);}
+    return;
+  }
+  if(form.id==='unavailable'){submitAction('unavailable','','',Object.fromEntries(values));return;}
+  if(form.id==='preferences'){
+    submitAction('preferences','','',{days:values.getAll('days'),blocks:values.getAll('blocks'),maxHours:Number(values.get('maxHours')),rush:values.has('rush')});
+    return;
+  }
+  submitAction(form.dataset.swap?'swap-request':form.id,form.dataset.swap||'','',Object.fromEntries(values));
+});
+
+const requestApi=typeof standaloneRequest==='function'?standaloneRequest:fetch;
+const roleTitles={admin:'Dispatch Admin',client:'Client Portal',guard:'Guard Account'};
+const apiOptions=body=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+let account=null, revision=-1, busy=false, generation=0;
+
+function showLogin() {
+  account=null;
+  revision=-1;
+  generation++;
+  data=null;
+  sites=[]; clients={}; guards=[];
+  view.checked.clear();
+  resetChat();
+  document.querySelector('#command').innerHTML='';
+  document.querySelector('#account').innerHTML='';
+  document.querySelector('#screen').innerHTML=`
+    <section class="card login-card">
+      <h1>Sign in</h1>
+      <form id="login" class="login-form">
+        <label for="login-name">Account ID, client company or contact name</label>
+        <input id="login-name" name="login" autocomplete="username" maxlength="160" required>
+        <p id="login-role" class="small" aria-live="polite"></p>
+        <label for="login-password">Password or PIN</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+    </section>`;
+}
+document.addEventListener('input',event=>{
+  const input=event.target;
+  if(input.id!=='login-name')return;
+  const value=input.value.trim();
+  const numbered=/^[1234]\d*$/.test(value);
+  const role=numbered?({1:'admin',2:'client',3:'guard',4:'guard'})[value[0]]:value&&!/^\d+$/.test(value)?'client':null;
+  input.inputMode=numbered?'numeric':'text';
+  document.querySelector('#login-role').innerHTML=role?tag(roleTitles[role]):'';
+});
+
+async function signIn(form) {
+  if(busy)return;
+  busy=true;
+  const control=form.querySelector('button');
+  control.disabled=true;
+  try{
+    const response=await requestApi('/api/login',apiOptions(Object.fromEntries(new FormData(form))));
+    if(!response.ok)throw Error((await response.json()).error);
+    announce('');
+  }catch(error){announce(error.message,true);}
+  finally{busy=false;control.disabled=false;await refresh();}
+}
+
+async function signOut() {
+  if(busy)return;
+  busy=true;
+  try{
+    const response=await requestApi('/api/logout',apiOptions({}));
+    if(!response.ok)throw Error((await response.json()).error);
+    showLogin();
+    announce('');
+    document.querySelector('#login-name').focus();
+  }catch(error){announce(error.message,true);}
+  finally{busy=false;}
+}
+
+function install(record) {
+  if(account?.id!==record.account.id){
+    view.checked.clear();
+    resetChat();
+    Object.assign(view,{mobileDetail:false,selected:1,search:'',status:'all',page:0,template:null,prefill:{},guardTab:'shifts',scheduleMode:'Agenda',calendarDate:null});
+  }
+  account=record.account;
+  Object.assign(view,{role:account.role,guard:account.guard,client:account.client});
+  ({sites,clients,guards}=record.catalog);
+  data=record.state;
+  revision=record.revision;
+  if(!byId(view.selected))view.selected=data.requests[0]?.id;
+}
+
+async function submitAction(action,id='',extra='',fields={}) {
+  if(busy||!account)return false;
+  busy=true;
+  let completed=false;
+  try{
+    const response=await requestApi('/api/actions',apiOptions({revision,account:account.id,checked:[...view.checked],action,id,extra,fields}));
+    const result=await response.json();
+    if(response.status===401)showLogin();
+    if(!response.ok)throw Error(result.error);
+    install(result);
+    if(action==='adjust-assignment'||action==='create-request'||action==='reset')view.selected=result.selected;
+    if(action==='create-request'){view.template=null;view.prefill={};}
+    view.checked=new Set(result.checked);
+    render();
+    announce(result.message);
+    completed=true;
+  }catch(error){announce(error.message,true);}
+  finally{busy=false;refresh();}
+  return completed;
+}
+
+async function refresh() {
+  if(busy)return;
+  const before=generation;
+  try{
+    const reply=await requestApi('/api/state?since='+revision+'&account='+(account?.id||''),{cache:'no-store'});
+    if(busy||generation!==before||reply.status===204)return;
+    if(reply.status===401){if(account||!document.querySelector('#login'))showLogin();return;}
+    if(!reply.ok)throw Error('Schedule unavailable.');
+    const record=await reply.json();
+    if(busy||generation!==before||record.account.id===account?.id&&record.revision<=revision)return;
+    const selector='#screen form input,#screen form textarea,#screen form select,#email';
+    const drafts=record.account.id===account?.id?[...document.querySelectorAll(selector)].map(el=>({
+      id:el.id,name:el.name,form:el.form?.id||el.form?.dataset.swap,kind:el.type,value:el.value,checked:el.checked,
+      focused:el===document.activeElement,start:el.selectionStart,end:el.selectionEnd
+    })):[];
+    const openDetails=[...document.querySelectorAll('#screen details[open]')].map(el=>el.id).filter(Boolean);
+    const emailOpen=document.querySelector('#email')?.closest('details').open;
+    install(record);
+    render();
+    const fields=[...document.querySelectorAll(selector)];
+    for(const draft of drafts){
+      const el=fields.find(input=>draft.id?input.id===draft.id:(input.form?.id||input.form?.dataset.swap)===draft.form&&input.name===draft.name&&(draft.kind!=='checkbox'||input.value===draft.value));
+      if(!el)continue;
+      if(el.type==='checkbox')el.checked=draft.checked;
+      else el.value=draft.value;
+      if(draft.focused){
+        el.focus({preventScroll:true});
+        if(draft.start!==null&&typeof el.setSelectionRange==='function')el.setSelectionRange(draft.start,draft.end);
+      }
+    }
+    for(const id of openDetails){const details=document.getElementById(id);if(details)details.open=true;}
+    if(emailOpen&&drafts.length)document.querySelector('#email')?.closest('details').setAttribute('open','');
+    if(view.role==='client')priority();
+  }catch{
+    if(!account&&!document.querySelector('#login'))showLogin();
+    announce(typeof standaloneRequest==='function'?'Browser storage is unavailable. Check your browser settings and reopen this file.':'Connection interrupted. Reconnecting to Sigma Dispatch…',true);
+  }
+}
+
+function startApp() {
+  showLogin();
+  refresh();
+  setInterval(refresh,1500);
+  setInterval(()=>{
+    if(!data)return;
+    const oldTime=data.now;
+    data.now=Date.now();
+    if(view.role==='admin'){
+      const crossed=t=>t>oldTime&&t<=data.now;
+      const due=data.requests.some(r=>crossed(r.start)||crossed(r.followUp?.due)||Object.values(r.offers).some(o=>crossed(Math.min(o.expires,o.replyDeadline||Infinity))));
+      const request=byId(view.selected);
+      if(request&&(due||Math.floor((request.start-oldTime)/minute)!==Math.floor((request.start-data.now)/minute))){
+        const decision=document.querySelector('#decision');
+        const opened=[...decision.querySelectorAll('details[open]')].map(el=>el.id);
+        const focused=document.activeElement;
+        const selector=decision.contains(focused)&&focused.dataset.action?'button[data-action="'+focused.dataset.action+'"][data-extra="'+focused.dataset.extra+'"]':null;
+        const drafts=[...decision.querySelectorAll('form[id] input,form[id] select')].map(el=>({form:el.form.id,name:el.name,value:el.value,focused:el===focused}));
+        decision.innerHTML=requestPanel(request);
+        for(const draft of drafts){
+          const el=document.getElementById(draft.form)?.elements.namedItem(draft.name);
+          if(el){el.value=draft.value;if(draft.focused)el.focus({preventScroll:true});}
+        }
+        for(const id of opened){const el=document.getElementById(id);if(el)el.open=true;}
+        if(selector)decision.querySelector(selector)?.focus({preventScroll:true});
+        document.querySelector('#queue-results').innerHTML=queueResults();
+        const active=data.requests.filter(r=>!isPast(r));
+        const metrics=document.querySelectorAll('.metric strong');
+        metrics[0].textContent=active.reduce((sum,r)=>sum+open(r),0);
+        metrics[1].textContent=active.filter(r=>r.rush&&open(r)).length;
+        metrics[2].textContent=active.reduce((sum,r)=>sum+waiting(r),0)+[...data.leaves,...data.swaps].filter(x=>x.status==='Pending').length;
+      }
+    }
+    const clock=document.querySelector('.clock');
+    if(clock)clock.textContent=formatTime(data.now);
+    updateRushCountdown();
+  },1000);
+  if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+document.addEventListener('DOMContentLoaded',startApp);
+function weekBoard(){
+  const today=inputDate(data.now);
+  const monday=calendarDate(today,1-(new Date(today+'T12:00Z').getUTCDay()||7)+(view.weekOffset||0)*7);
+  const dates=Array.from({length:7},(_,i)=>calendarDate(monday,i));
+  const rows=sites.map(site=>{
+    const shifts=data.requests.filter(r=>r.need&&r.site===site.id&&inputDate(r.start)<=dates[6]&&inputDate(r.end-1)>=monday);
+    if(!shifts.length)return '';
+    return '<tr><th>'+safe(site.name)+'</th>'+dates.map(d=>'<td>'+shifts.filter(r=>inputDate(r.start)<=d&&inputDate(r.end-1)>=d).map(r=>button(formatTime(r.start)+' · '+coverage(r),'select',r.id)).join(' ')+'</td>').join('')+'</tr>';
+  }).join('');
+  return `<details class="card" id="week-board" ${view.weekOpen?'open':''}><summary>Week by site</summary><div class="row">${button('Previous week','week',-1)}<strong>${monday} – ${dates[6]}</strong>${button('Next week','week',1)}</div><div style="overflow:auto"><table><thead><tr><th>Site</th>${dates.map(d=>'<th>'+d.slice(5)+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+}
+function operationsTools(r){
+  const id=view.recordGuard||r.cancelledGuard||r.assignments[0]?.guard||Number(Object.keys(r.offers)[0])||guards.find(g=>!g.available)?.id;
+  const g=guardBy(id);
+  const reviews=data.requests.flatMap(x=>x.assignments.filter(a=>a.guard===g.id&&a.review).map(a=>a.review));
+  const cancellations=data.requests.flatMap(x=>(x.history||[]).filter(e=>e.guard===g.id&&e.status==='Guard cancelled')).length;
+  return `<details class="details" id="guard-record" ${view.recordOpen?'open':''}><summary>Guard record and phone follow-up</summary>
+    <form id="find-record" class="wrap"><label>Guard ID <input name="guard" type="number" min="3001" max="4000" required value="${g.id}"></label><button class="button">Find guard</button></form>
+    <strong>${safe(g.name)} · ${g.id}</strong><p>${g.available?'Available on roster':'Marked unavailable'} · ${g.onTime+reviews.filter(v=>v.arrival==='On time').length}/${g.completed+reviews.length} shifts on time · ${g.priorCancellations} prior cancellations + ${cancellations} logged here.</p>
+    <p>Report quality: ${g.reportRecord.accepted+reviews.filter(v=>v.report==='Accepted').length}/${g.reportRecord.reviewed+reviews.length} reports accepted. ${safe(g.reportRecord.basis)} · ${inputDate(Math.max(g.reportRecord.asOf,...reviews.map(v=>v.at)))}.</p>
+      ${r.end<=data.now&&r.assignments.some(a=>a.guard===g.id)?`<form id="review-duty" data-request="${r.id}" data-guard="${g.id}" class="wrap"><label>Arrival<select name="arrival"><option>On time</option><option>Late</option></select></label><label>Report<select name="report"><option>Accepted</option><option>Needs correction</option></select></label><label>Review basis<input name="note" maxlength="200" required></label><button class="button">Save duty review</button></form>`:''}
+    <p>Fictional duty phone: <a href="tel:${g.phone.split(' ext ')[0]};ext=${g.id}">${safe(g.phone)}</a></p><form id="call-log" data-request="${r.id}" data-guard="${g.id}" class="wrap"><label>Call outcome <select name="outcome"><option>No answer</option><option>Unavailable</option><option>Will review offer</option></select></label><button class="button">Record follow-up</button></form></details>
+    <details class="details" id="shift-history"><summary>Shift history</summary>${(r.history||[]).slice().reverse().map(e=>`<p>${formatDay(e.at)} · ${formatTime(e.at)} · ${safe(e.status)} ${e.guard?'· '+e.guard:''}</p>`).join('')||'No recorded changes.'}</details>
+    ${r.assignments.length&&!isPast(r)?`<details id="adjust-post"><summary>Adjust an assigned shift</summary><form id="adjust-form" data-request="${r.id}" class="wrap"><label>Assigned guard<select name="guard">${r.assignments.map(a=>option(a.guard,guardBy(a.guard).name+' · '+a.guard)).join('')}</select></label><label>Date<input name="date" type="date" value="${inputDate(r.start)}" required></label><label>Start<input name="time" type="time" value="${inputTime(r.start)}" required></label><label>Hours<input name="hours" type="number" min=".5" max="24" step=".5" value="${(r.end-r.start)/hour}" required></label><button class="button">Reoffer revised post</button></form></details>`:''}`;
+}
+
+const guardTabs=[
+  ['shifts','Schedule'],['open','Offers & swaps'],['leave','Time off'],['hours','Availability']
+];
+const guardAssignments=()=>data.requests.filter(r=>r.mine).sort((a,b)=>a.start-b.start);
+const guardOpenShifts=()=>data.requests.filter(r=>r.canVolunteer&&(!r.rush||!activeOffer(r.offer))).sort((a,b)=>a.start-b.start);
+const rushOffers=()=>data.requests.filter(r=>r.rush&&activeOffer(r.offer)).sort((a,b)=>a.offer.expires-b.offer.expires);
+const briefStatus=r=>r.mine.ack?'Brief acknowledged':'Brief unread';
+
+function guardView() {
+  const rush=rushOffers();
+  return `${rush.length?rushBanner(rush[0],rush.length):''}
+    <div class="field-heading"><p>Guard workspace</p><h1>${guardTabs.find(([id])=>id===view.guardTab)[1]}</h1></div>
+    <nav class="guard-tabs" aria-label="Guard workspace">${guardTabs.map(([id,label])=>`<button type="button" data-action="guard-tab" data-id="${id}" aria-pressed="${view.guardTab===id}"><span class="nav-icon nav-${id}" aria-hidden="true"></span>${label}</button>`).join('')}</nav>
+    ${({shifts:guardSchedule,open:guardAdditionalShifts,hours:guardHours,leave:guardLeave})[view.guardTab]()}`;
+}
+
+function offerActions(r) {
+  return `<div class="actions offer-actions">
+    ${r.canVolunteer?button(r.rush?'I can cover this':'Request shift','volunteer',r.id,'','primary'):tag('Eligibility changed','warn')}
+    ${r.rush&&activeOffer(r.offer)?button('Decline','decline',r.id):''}
+  </div>`;
+}
+function rushBanner(r,count) {
+  const {area,uniform}=r.location;
+  return `<aside class="rush-banner" aria-label="Rush shift offer">
+    <div class="row"><strong>Rush shift · ${safe(area)}</strong><span class="countdown" data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div>
+    <p>${shiftTime(r)} · ${safe(uniform)} · ${r.eta} min ETA</p>
+    <p class="small">Site name and instructions appear after approval.${count>1?' More offers in Offers &amp; swaps.':''}</p>
+    ${offerActions(r)}
+  </aside>`;
+}
+function updateRushCountdown() {
+  for(const el of document.querySelectorAll('[data-reply-deadline]')){
+    const simulated=Number(el.dataset.replyExpires)-data.now;
+    const real=Number(el.dataset.replyDeadline)?Number(el.dataset.replyDeadline)-Date.now():simulated;
+    const seconds=Math.max(0,Math.ceil(Math.min(real,simulated)/1000));
+    el.textContent=seconds?'Reply in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):'Reply window closed';
+    if(!seconds)for(const btn of el.closest('.rush-banner, .entry')?.querySelectorAll('.offer-actions button')||[])btn.disabled=true;
+  }
+  signalRush();
+}
+function monthCalendar(shifts){
+  const selected=view.calendarDate||inputDate(data.now);
+  const first=selected.slice(0,7)+'-01';
+  const offset=(new Date(first+'T12:00Z').getUTCDay()+6)%7;
+  const label=new Intl.DateTimeFormat('en-CA',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(first+'T12:00Z'));
+  return `<div class="calendar"><div class="row"><button type="button" data-month="-1" aria-label="Previous month">‹</button><strong>${label}</strong><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="days">
+  ${['M','T','W','T','F','S','S'].map(d=>'<span>'+d+'</span>').join('')}
+  ${Array.from({length:42},(_,i)=>{
+    const date=calendarDate(first,i-offset);
+    const assigned=shifts.some(r=>inputDate(r.start)<=date&&inputDate(r.end-1)>=date);
+    return `<button type="button" data-date="${date}" aria-pressed="${selected===date}" aria-label="${date}${assigned?', scheduled':''}" class="${assigned?'scheduled ':''}${date.slice(0,7)!==first.slice(0,7)?'adjacent':''}">${Number(date.slice(-2))}</button>`;
+  }).join('')}</div></div>`;
+}
+document.addEventListener('click',event=>{
+  const control=event.target.closest('[data-schedule-mode],[data-date],[data-month]');
+  if(!control||view.role!=='guard')return;
+  if(control.dataset.scheduleMode)view.scheduleMode=control.dataset.scheduleMode;
+  if(control.dataset.date)view.calendarDate=control.dataset.date;
+  if(control.dataset.month){
+    const month=new Date((view.calendarDate||inputDate(data.now)).slice(0,7)+'-01T12:00Z');
+    month.setUTCMonth(month.getUTCMonth()+Number(control.dataset.month));
+    view.calendarDate=month.toISOString().slice(0,10);
+  }
+  render();
+  const key=Object.keys(control.dataset)[0];
+  const attr={scheduleMode:'data-schedule-mode',date:'data-date',month:'data-month'}[key];
+  document.querySelector('['+attr+'="'+control.dataset[key]+'"]')?.focus({preventScroll:true});
+});
+function guardSchedule() {
+  const shifts=guardAssignments();
+  const pending=data.requests.filter(r=>r.offer?.status==='Volunteered'&&!isPast(r));
+  const phoneSupported=location.protocol!=='file:'&&'PushManager' in window&&'Notification' in window;
+  const phoneOn=phoneSupported&&Notification.permission==='granted'&&data.phoneRegistered;
+  const selected=view.calendarDate||inputDate(data.now);
+  const visible=view.scheduleMode==='Month'?shifts.filter(r=>inputDate(r.start)<=selected&&inputDate(r.end-1)>=selected):shifts;
+  return `    ${pending.map(r=>`<section class="card"><h2>${safe(r.location.area)} · Awaiting dispatch approval</h2><p>${shiftTime(r)}</p><p>You volunteered. Wait for assignment confirmation before travelling.</p></section>`).join('')}
+    ${data.notices?.length?`<details class="card"><summary>Assignment changes (${data.notices.length})</summary>${data.notices.map(n=>`<p>${safe(n.site)} � ${formatDay(n.start)} ${formatTime(n.start)} � ${safe(n.status)}</p>`).join('')}</details>`:''}
+    <section class="card schedule-card"><div class="section-top"><h2>Assignments</h2><div class="segments" aria-label="Schedule view">${['Agenda','Month'].map(mode=>`<button type="button" data-schedule-mode="${mode}" aria-pressed="${(view.scheduleMode||'Agenda')===mode}">${mode}</button>`).join('')}</div></div>
+    ${view.scheduleMode==='Month'?monthCalendar(shifts):''}
+    ${visible.length?visible.map((r,index)=>{
+    const {name,uniform,notes,brief,dress}=r.location;
+    const label=isPast(r)?'In progress':r===shifts[0]?'Next shift':'Upcoming';
+    return `<div class="entry"><div class="row"><strong class="shift-time">${formatTime(r.start)} – ${formatTime(r.end)}</strong>${tag(label,'good')}</div>
+      <p class="site-line">${safe(name)}</p><p class="sub">${shiftTime(r)} · ${safe(uniform)} · ${r.mine.post||'Confirmed'}${dress?' · '+safe(dress):''}</p>
+      <p class="check-in"><strong>Check-in</strong> ${safe(notes)}${brief?' '+safe(brief):''}</p>
+      <div class="actions form-actions">${r.mine.ack?tag(briefStatus(r),'good'):button('Acknowledge site brief','ack',r.id,'','primary')}</div>
+      ${!isPast(r)?`<div class="actions form-actions">${r.pendingSwap?tag('Swap pending','warn'):r.peers.length?button('Offer to swap pool','pool',r.id):''}${button('Report cancellation','guard-cancel',r.id,'','danger')}</div>
+      ${r.peers.length?`<details class="details"><summary>Propose swap to an eligible peer</summary>
+        <form data-swap="${r.id}" class="wrap"><label>Eligible guard <select name="target" required><option value="">Choose a guard</option>${r.peers.map(peer=>option(peer.id,peer.name+' · '+peer.id)).join('')}</select></label><button class="button">Propose swap</button></form>
+      </details>`:''}`:''}
+    </div>`;
+  }).join(''):empty(view.scheduleMode==='Month'?'No current or upcoming assignment for this date.':'Your approved assignments will appear here.')}</section><section class="card"><h2>Rush alerts on this phone</h2><div class="actions"><strong>${phoneSupported?(phoneOn?'On':'Off'):'Unavailable here'}</strong>
+    ${phoneSupported?button(phoneOn?'Turn phone alerts off':'Turn phone alerts on','phone-alert'):''}
+    ${button(alertGuard===account.id?'Mute in-app alerts':'Enable in-app alerts','alert-device')}</div></section>`;
+}
+function regularOfferCard(r) {
+  const {area,uniform}=r.location;
+  return `<article class="entry"><strong>${r.rush?'Rush � ':''}${safe(area)}</strong><p class="sub">${shiftTime(r)} · ${safe(uniform)}</p>${offerActions(r)}</article>`;
+}
+function guardAdditionalShifts() {
+  const regular=guardOpenShifts();
+  const otherRush=rushOffers().slice(1);
+  const waiting=data.requests.filter(r=>r.offer?.status==='Volunteered');
+  return `<section class="card"><h2>Open shifts and swap pool</h2>
+    <p class="sub">Site name and instructions appear after approval.</p>
+    ${otherRush.map(r=>`<article class="entry"><div class="row"><strong>Rush · ${safe(r.location.area)}</strong><span data-reply-deadline="${r.offer.replyDeadline||0}" data-reply-expires="${r.offer.expires}"></span></div><p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${offerActions(r)}</article>`).join('')}
+    ${regular.map(regularOfferCard).join('')}
+    ${data.poolSwaps.map(s=>`<article class="entry"><strong>${safe(s.location.area)} · Swap pool</strong><p class="sub">${shiftTime(s)} · ${safe(s.location.uniform)}</p>${button('Claim pool swap','claim',s.id,'','primary')}</article>`).join('')}
+    ${waiting.map(r=>`<article class="entry"><div class="row"><strong>${safe(r.location.area)}</strong>${tag('Awaiting admin approval','warn')}</div><p class="sub">${shiftTime(r)}</p></article>`).join('')}
+    ${!(regular.length||otherRush.length||waiting.length||data.poolSwaps.length)?empty('Eligible regular shifts and peer swaps will appear here.'):''}
+    </section>`;
+}
+function choices(values,selected,name) {
+  return values.map(value=>`<label class="choice"><input type="checkbox" name="${name}" value="${value}" ${selected.includes(value)?'checked':''}><span>${value}</span></label>`).join('');
+}
+function guardHours() {
+  const profile=data.profile;
+  return `<section class="card"><h2>Unavailable periods</h2><form id="unavailable" class="fields"><label>From date<input type="date" name="date" value="${inputDate(data.now)}" required></label><label>From time<input type="time" name="from" required></label><label>Until date<input type="date" name="endDate" value="${inputDate(data.now)}" required></label><label>Until time<input type="time" name="to" required></label><button class="button">Save unavailable period</button></form>
+    ${(profile.unavailable||[]).filter(w=>w.end>data.now).map(w=>`<p>${shiftTime(w)} ${button('Remove period','remove-window',w.start)}</p>`).join('')}</section><section class="card"><h2>Preferred working hours</h2>
+    <form id="preferences" class="preference-form">
+      <fieldset><legend>Days</legend><div class="wrap">${choices(weekdays,profile.days,'days')}</div></fieldset>
+      <fieldset><legend>Shift blocks</legend><div class="wrap">${choices(blocks,profile.blocks,'blocks')}</div>
+      <p class="sub">Morning 6 a.m.–noon · Afternoon noon–6 p.m. · Overnight 6 p.m.–6 a.m.</p></fieldset>
+      <label>Maximum weekly hours target <input type="number" name="maxHours" min="1" max="168" step="0.5" value="${profile.maxHours}" required></label>
+      <label class="choice"><input type="checkbox" name="rush" ${profile.rush?'checked':''}> Receive last-minute rush offers</label>
+      <div class="actions"><button class="button primary">Save preferences</button></div>
+    </form>
+  </section>`;
+}
+function guardLeave() {
+  const upcoming=inputDate(data.now+day);
+  return `<section class="card"><h2>Request time off</h2><form id="leave-request" class="preference-form">
+    <div class="fields"><label>First day<input name="first" type="date" min="${inputDate(data.now)}" value="${upcoming}" required></label>
+    <label>Last day<input name="last" type="date" min="${inputDate(data.now)}" value="${upcoming}" required></label></div>
+    <button class="button primary">Request leave</button></form>
+    <hr class="divider"><h2>Leave and swap status</h2>
+    ${data.leaves.map(l=>`<div class="row entry"><span>Leave · ${formatDay(l.start)} to ${formatDay(l.end-1)}</span>${tag(l.status)}</div>`).join('')}
+    ${data.swaps.map(s=>{
+      const pending=s.status==='Pending'&&s.accepted;
+      const status=pending?(s.incoming&&s.claimedFromPool?'Claimed · Awaiting admin approval':'Awaiting admin approval'):s.status;
+      return `<div class="row entry"><span>${s.incoming?'Swap from ':'Swap to '}${safe(s.peer||'eligible pool')} · ${formatDay(s.start)}</span>
+        ${s.incoming&&s.status==='Pending'&&!s.accepted?button('Accept swap','accept-swap',s.id,'','primary'):tag(status,pending?'warn':'')}</div>`;
+    }).join('')}
+    ${!(data.leaves.length||data.swaps.length)?empty('Leave and swap requests will appear here.'):''}
+  </section>`;
+}
+
+let alertGuard=null, alertAudio=null, seenRush=new Set();
+function toggleRushSound() {
+  if(alertGuard===account.id){alertGuard=null;render();return;}
+  alertGuard=account.id;
+  seenRush=new Set(rushOffers().map(r=>r.id+':'+r.offer.replyDeadline));
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(Audio){
+    try{alertAudio ||= new Audio();alertAudio.resume().catch(()=>{});}catch{}
+  }
+  render();
+}
+function signalRush() {
+  if(!account||view.role!=='guard'||alertGuard!==account.id)return;
+  for(const r of rushOffers()){
+    const key=r.id+':'+r.offer.replyDeadline;
+    if(seenRush.has(key))continue;
+    seenRush.add(key);
+    const banner=document.querySelector('.rush-banner');
+    if(banner && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      banner.animate([{outline:'4px solid transparent'},{outline:'4px solid #d88600'},{outline:'4px solid transparent'}],{duration:1600,iterations:2});
+    }
+    navigator.vibrate?.([180,80,180]);
+    if(alertAudio?.state==='running'){
+      const oscillator=alertAudio.createOscillator();
+      const gain=alertAudio.createGain();
+      oscillator.frequency.value=625;
+      gain.gain.value=.09;
+      oscillator.connect(gain).connect(alertAudio.destination);
+      oscillator.start();
+      oscillator.stop(alertAudio.currentTime+.20);
+    }
+  }
+}
+async function managePhoneAlerts(){
+  try{
+    const disable=data.phoneRegistered&&Notification.permission==='granted';
+    if(!disable&&await Notification.requestPermission()!=='granted')throw Error('Phone notifications are off. To enable them, allow notifications in browser settings.');
+    const registration=await navigator.serviceWorker.ready;
+    let subscription=await registration.pushManager.getSubscription();
+    if(disable){
+      const removed=await requestApi('/api/push',apiOptions({endpoint:null}));
+      if(!removed.ok)throw Error('Could not turn off phone alerts.');
+      await subscription?.unsubscribe();
+      await refresh();return;
+    }
+    if(!subscription){
+      const response=await fetch('/api/push');
+      if(!response.ok)throw Error('Sign in again to enable notifications.');
+      const {publicKey}=await response.json();
+      subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:publicKey});
+    }
+    const saved=await requestApi('/api/push',apiOptions({endpoint:subscription?.endpoint||null}));
+    if(!saved.ok)throw Error('Could not save the notification preference.');
+    await refresh();
+    announce(subscription?'Rush notifications enabled for this sign-in.':'Phone notifications turned off.');
+  }catch(error){announce(error.message,true);}
+}
+
+
+let chatOpen=false;
+let nextChatAction=0;
+let chatHistory=[];
+const chatActions=new Map();
+const prompts={
+  admin:['Which shifts still need guards?','Summarize today’s urgent requests'],
+  guard:['When is my next shift?','Are there any extra shifts this week?','Request leave from Nov 25 to Nov 27','Set my preferred hours to mornings Mon–Fri'],
+  client:['Need 6 guards tomorrow at 9am for 8 hours','How many guards are confirmed for today?']
+};
+const months=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+
+function resetChat() {
+  chatOpen=false;
+  nextChatAction=0;
+  chatHistory=[];
+  chatActions.clear();
+  document.querySelector('#chat').innerHTML='';
+}
+function renderChat() {
+  const root=document.querySelector('#chat');
+  if(!account||!prompts[view.role]){root.innerHTML='';return;}
+  if(!root.firstElementChild){
+    const intro=view.role==='admin'
+      ?'Ask about open positions, urgent requests, or pending approvals.'
+      :view.role==='guard'
+      ?'Ask about shifts, time off, or working preferences.'
+      :'Draft a staffing request or check today’s coverage.';
+    root.innerHTML=`
+      <section class="chat-drawer card" id="chat-drawer" aria-label="Ask Sigma" hidden>
+        <div class="row"><h2>Ask Sigma</h2>${button('Close','chat-toggle')}</div>
+        <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <div class="chat-suggestions" aria-label="Suggested questions">${chatPrompts().map((prompt,index)=>button(safe(prompt),'chat-prompt',index)).join('')}</div>
+        <form id="chat-form" class="wrap"><label class="sr-only" for="chat-prompt">Message Ask Sigma</label><input id="chat-prompt" name="prompt" maxlength="500" placeholder="Ask Sigma anything…" required><button class="button primary">Send</button></form>
+      </section>
+      <button type="button" class="button primary chat-trigger" data-action="chat-toggle" aria-expanded="false" aria-controls="chat-drawer">Ask Sigma</button>`;
+    addChatLine('sigma',intro);
+  }
+  root.querySelector('#chat-drawer').hidden=!chatOpen;
+  root.querySelector('.chat-trigger').setAttribute('aria-expanded',String(chatOpen));
+}
+
+function chatPrompts() {
+  if(view.role!=='client'||!sites[0])return prompts[view.role];
+  const [request,coveragePrompt]=prompts.client;
+  return [request.replace('tomorrow','at '+sites[0].name+' tomorrow'),coveragePrompt];
+}
+function addChatLine(from,content,body='') {
+  const messages=document.querySelector('#chat-messages');
+  if(!messages)return null;
+  messages.insertAdjacentHTML('beforeend',`<article class="chat-line ${from}"><p>${safe(content)}</p>${body}</article>`);
+  messages.scrollTop=messages.scrollHeight;
+  return messages.lastElementChild;
+}
+function chatConfirmation(label,action,fields={},id='') {
+  const key=++nextChatAction;
+  chatActions.set(key,{action,id,fields});
+  return button(label,'chat-confirm',key,'','primary');
+}
+
+function chatDate(text,reference) {
+  if(/^\d{4}-\d{2}-\d{2}$/.test(text)){localTime(text,'00:00');return text;}
+  const match=text.match(/^([a-z]+)\s+(\d{1,2})(?:,?\s+(\d{4}))?$/i);
+  if(!match)throw Error('Use a date like Nov 25 or 2026-11-25.');
+  const month=months.indexOf(match[1].toLowerCase().slice(0,3))+1;
+  if(!month)throw Error('Choose a valid month.');
+  const suffix='-'+String(month).padStart(2,'0')+'-'+match[2].padStart(2,'0');
+  let year=Number(match[3]||reference.slice(0,4));
+  if(!match[3]&&year+suffix<reference)year++;
+  const date=year+suffix;
+  localTime(date,'00:00');
+  return date;
+}
+function leavePrompt(prompt) {
+  const match=prompt.match(/\bfrom\s+(.+?)\s+(?:to|through|until)\s+(.+?)[.!?]*$/i);
+  if(!match)throw Error('Include both dates, for example “Request leave from Nov 25 to Nov 27”.');
+  const first=chatDate(match[1],inputDate(data.now));
+  const last=chatDate(match[2],inputDate(data.now));
+  const range=leaveRange(first,last,data.now,data.leaves);
+  addChatLine('sigma',`Request leave from ${formatDay(range.start)} through ${formatDay(range.end-1)}?`,chatConfirmation('Confirm leave request','leave-request',{first,last}));
+}
+function preferencesPrompt(prompt) {
+  const preferred=blocks.filter(block=>new RegExp('\\b'+block.toLowerCase()+'s?\\b','i').test(prompt));
+  const names=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  const short='(?:mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)';
+  const span=prompt.match(new RegExp('\\b('+short+')\\s*(?:[-–—]|to|through)\\s*('+short+')\\b','i'));
+  const dayIndex=value=>weekdays.findIndex(day=>day.toLowerCase()===value.toLowerCase().slice(0,3));
+  let days=weekdays.filter((day,index)=>new RegExp('\\b(?:'+day+'|'+names[index]+')\\b','i').test(prompt));
+  if(span){
+    const start=dayIndex(span[1]),end=dayIndex(span[2]);
+    days=Array.from({length:(end-start+7)%7+1},(_,offset)=>weekdays[(start+offset)%7]);
+  }else if(/\bweekdays\b/i.test(prompt))days=weekdays.slice(0,5);
+  else if(/\bweekends?\b/i.test(prompt))days=weekdays.slice(5);
+  if(!preferred.length)throw Error('Choose Morning, Afternoon or Overnight, for example “Set my preferred hours to mornings Mon–Fri”.');
+  const fields={...data.profile,days:days.length?days:data.profile.days,blocks:preferred};
+  addChatLine('sigma',`Save ${fields.blocks.join(', ')} on ${fields.days.join(', ')||'no selected days'}? Your weekly target and rush setting stay as shown in Working hours.`,chatConfirmation('Save working preferences','preferences',fields));
+}
+function extraShiftsPrompt(prompt) {
+  let available=guardOpenShifts();
+  if(/\bthis week\b/i.test(prompt)){
+    const today=inputDate(data.now);
+    const weekday=(new Date(today+'T12:00Z').getUTCDay()+6)%7;
+    const nextMonday=calendarDate(today,7-weekday);
+    available=available.filter(r=>inputDate(r.start)<nextMonday);
+  }
+  if(!available.length){addChatLine('sigma','There are no eligible regular shifts in that period.');return;}
+  const cards=available.map(r=>`<div class="entry"><strong>${safe(r.location.area)}</strong>
+    <p class="sub">${shiftTime(r)} · ${safe(r.location.uniform)}</p>${chatConfirmation('Request shift','volunteer',{},r.id)}</div>`).join('');
+  addChatLine('sigma',`I found ${available.length} eligible regular ${available.length===1?'shift':'shifts'}.`,cards);
+}
+function clientRequestPrompt(prompt) {
+  const fields=parseRequestDraft(prompt);
+  if(!fields.site||!fields.date||!fields.time||!fields.hours||!fields.count)throw Error('Include your site, number of guards, start date and time, and duration.');
+  if(localTime(fields.date,fields.time)<=data.now)throw Error('Choose a future start time.');
+  const site=siteBy(fields.site);
+  const requirements=[fields.force?'Use of force / MORB':'',fields.vehicle?'Vehicle / lockbox':''].filter(Boolean);
+  addChatLine('sigma',`${fields.count} guards at ${site.name} on ${formatDay(localTime(fields.date,fields.time))} at ${fields.time} for ${fields.hours} hours.${fields.supervisors?' Supervisor posts: '+fields.supervisors+'.':''}${requirements.length?' '+requirements.join(' · ')+'.':''}`,chatConfirmation('Submit request','create-request',fields));
+}
+
+function localFallbackHint() {
+  if(view.role==='guard')return 'Ask about your next shift, extra shifts, leave dates, or preferred hours. (To enable open-ended AI answers, add a free API key to .env on the server.)';
+  if(view.role==='client')return 'Ask about today’s coverage or describe a staffing request with a site, start, and duration. (To enable open-ended AI answers, add a free API key to .env on the server.)';
+  return 'To enable AI answers for administrators, add a free API key (e.g. GROQ_API_KEY or GEMINI_API_KEY) to .env and restart the server.';
+}
+
+async function askSigmaAI(prompt) {
+  if(location.protocol==='file:'||typeof offlineBundle!=='undefined'){
+    addChatLine('sigma',localFallbackHint());
+    return;
+  }
+  const accountId=account?.id;
+  const role=view.role;
+  const pendingLine=addChatLine('sigma','Thinking…');
+  const sendBtn=document.querySelector('#chat-form button');
+  if(sendBtn)sendBtn.disabled=true;
+  try{
+    const res=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt,history:chatHistory})
+    });
+    const result=await res.json();
+    if(account?.id!==accountId||view.role!==role)return;
+    const text=res.ok
+      ?(result.configured&&result.reply?result.reply:localFallbackHint())
+      :(result.error||'Could not reach Ask Sigma AI.');
+    if(pendingLine)pendingLine.querySelector('p').textContent=text;
+    if(res.ok&&result.configured&&result.reply){
+      chatHistory.push({role:'user',content:prompt},{role:'assistant',content:result.reply});
+      if(chatHistory.length>12)chatHistory=chatHistory.slice(-12);
+    }
+  }catch{
+    if(pendingLine)pendingLine.querySelector('p').textContent='Could not reach the server AI endpoint.';
+  }finally{
+    if(sendBtn)sendBtn.disabled=false;
+    const messages=document.querySelector('#chat-messages');
+    if(messages)messages.scrollTop=messages.scrollHeight;
+  }
+}
+
+function askSigma(prompt) {
+  addChatLine('you',prompt);
+  try{
+    if(view.role==='guard'){
+      if(/\b(next|upcoming|current)\b.*\bshift\b/i.test(prompt)){
+        const next=guardAssignments()[0];
+        addChatLine('sigma',next?`${next.location.name} · ${shiftTime(next)} · ${next.location.uniform} · ${briefStatus(next)}.`:'There are no current or upcoming confirmed shifts.');
+        return;
+      }
+      if(/\b(extra|open|available|regular)\b.*\bshifts?\b/i.test(prompt)){extraShiftsPrompt(prompt);return;}
+      if(/\b(?:leave|time off)\b/i.test(prompt)){leavePrompt(prompt);return;}
+      if(/\b(?:prefer(?:red|ences?)?|working hours)\b/i.test(prompt)){preferencesPrompt(prompt);return;}
+    }else if(view.role==='client'){
+      if(/\b(?:confirmed|coverage|filled)\b/i.test(prompt)){
+        const today=inputDate(data.now);
+        const end=localTime(calendarDate(today,1),'00:00');
+        const requests=requestsForClient().filter(r=>r.start<end&&r.end>data.now);
+        addChatLine('sigma',requests.length?`Today: ${requests.reduce((n,r)=>n+confirmedCount(r),0)} of ${requests.reduce((n,r)=>n+r.need,0)} guards confirmed across ${requests.length} active ${requests.length===1?'request':'requests'}.`:'There are no active requests for your company today.');
+        return;
+      }
+      if(/\b(?:guards?|coverage|request)\b/i.test(prompt)){clientRequestPrompt(prompt);return;}
+    }
+    askSigmaAI(prompt);
+  }catch(error){addChatLine('sigma',error.message);}
+}
+
+function handleChatAction(action,id) {
+  if(action==='chat-toggle'){
+    chatOpen=!chatOpen;
+    renderChat();
+    document.querySelector(chatOpen?'#chat-prompt':'.chat-trigger')?.focus();
+    return true;
+  }
+  if(action==='chat-prompt'){
+    const prompt=chatPrompts()[Number(id)];
+    if(prompt)askSigma(prompt);
+    return true;
+  }
+  if(action==='chat-confirm'){
+    const pending=chatActions.get(Number(id));
+    const control=document.querySelector(`[data-action=chat-confirm][data-id="${Number(id)}"]`);
+    if(pending&&control&&!busy){
+      control.disabled=true;
+      const accountId=account.id;
+      submitAction(pending.action,pending.id,'',pending.fields).then(success=>{
+        if(account?.id!==accountId)return;
+        if(success){
+          chatActions.delete(Number(id));
+          control.textContent='Confirmed';
+          addChatLine('sigma','Saved. You can see the update in your workspace.');
+        }else{
+          control.disabled=false;
+          addChatLine('sigma','That action could not be completed. Check the message in your workspace.');
+        }
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
+</script>
+</body></html>
+
