@@ -16,7 +16,7 @@ function coordinates(body){
   return [latitude,longitude];
 }
 
-function attendanceService(db,{radius=150,maxAccuracy=75,ttl=180000}={}){
+function attendanceService(db,{radius=150,maxAccuracy=75,ttl=180000,requireLocation=true}={}){
   db.exec(`
     CREATE TABLE IF NOT EXISTS attendance_pins (site TEXT PRIMARY KEY, latitude REAL NOT NULL, longitude REAL NOT NULL);
     CREATE TABLE IF NOT EXISTS attendance_tokens (request INTEGER PRIMARY KEY, hash TEXT NOT NULL, issuer INTEGER NOT NULL, expires INTEGER NOT NULL);
@@ -48,9 +48,9 @@ function attendanceService(db,{radius=150,maxAccuracy=75,ttl=180000}={}){
     return {distance:Math.round(distance),accuracy:Math.ceil(accuracy)};
   }
   async function issue(shift,account,body,origin,now){
-    if(account.role!=='guard'||!assignedSupervisor(shift,account.guard))throw Error('Only the assigned supervisor can issue this code.');
+    if(account.role!=='guard'||!shift||!assignedSupervisor(shift,account.guard))throw Error('Only the assigned supervisor can issue this code.');
     if(!attendanceWindow(shift,now))throw Error('Check-in opens 15 minutes before shift start.');
-    proximity(shift.site,body,now);
+    if(requireLocation)proximity(shift.site,body,now);
     const token=randomBytes(24).toString('base64url');
     const expires=Math.min(now+ttl,shift.end);
     // A fragment keeps the code out of standard HTTP URL logs.
@@ -66,7 +66,7 @@ function attendanceService(db,{radius=150,maxAccuracy=75,ttl=180000}={}){
     const saved=getToken.get(shift.id);
     if(typeof body.code!=='string'||!/^[A-Za-z0-9_-]{32}$/.test(body.code)||!saved||saved.expires<=now||saved.hash!==tokenHash(body.code))throw Error('Code expired or invalid. Scan the supervisor’s current QR code.');
     if(!assignedSupervisor(shift,saved.issuer))throw Error('The issuing supervisor is no longer assigned.');
-    const evidence=proximity(shift.site,body,now);
+    const evidence=requireLocation?proximity(shift.site,body,now):{};
     return recordQrArrival(snapshot,{requestId:shift.id,guard:account.guard,issuer:saved.issuer,now,...evidence});
   }
   return {pin,issue,redeem,hasPin:site=>Boolean(getPin.get(site))};

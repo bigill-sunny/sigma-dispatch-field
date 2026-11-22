@@ -12,9 +12,10 @@ const port=Number(process.env.SIGMA_TEST_PORT||4308);
 const origin='http://127.0.0.1:'+port;
 const file=path.join(tmpdir(),'sigma-qr-test-'+randomBytes(6).toString('hex')+'.sqlite');
 const pilot=randomBytes(24).toString('hex');
+const requireLocation=process.argv.includes('--with-location');
 const gps={latitude:43.58,longitude:-79.64,accuracy:15};
 async function run(){
-  const server=spawn(process.execPath,['server.js'],{cwd:__dirname,windowsHide:true,env:{...process.env,SIGMA_DB:file,SIGMA_PORT:String(port),SIGMA_HOST:'127.0.0.1',SIGMA_ORIGIN:origin,SIGMA_PILOT_KEY:pilot}});
+  const server=spawn(process.execPath,['server.js'],{cwd:__dirname,windowsHide:true,env:{...process.env,SIGMA_DB:file,SIGMA_PORT:String(port),SIGMA_HOST:'127.0.0.1',SIGMA_ORIGIN:origin,SIGMA_PILOT_KEY:pilot,SIGMA_ATTENDANCE_LOCATION:requireLocation?'on':'off'}});
   let browser;
   try{
     await Promise.race([once(server.stdout,'data'),once(server,'exit').then(()=>{throw Error('Test server exited early.')})]);
@@ -32,6 +33,7 @@ async function run(){
       const page=await context.newPage();
       page.setDefaultTimeout(15000);
       await page.goto(origin);
+      if(!requireLocation)await page.evaluate(()=>{navigator.geolocation.getCurrentPosition=()=>{throw Error('GPS must not be requested');};});
       await page.locator('#login-name').fill(String(id));
       await page.locator('#login-password').fill(role+'-'+id+'-demo');
       await page.locator('#pilot-key').fill(pilot);
@@ -42,11 +44,13 @@ async function run(){
     const admin=await login(1001,'Admin');
     await admin.locator('#queue-results [data-action=select][data-id="2"]').click();
     await admin.getByText('More request tools',{exact:true}).click();
+    if(requireLocation){
     await admin.locator('#attendance-pin summary').click();
     await admin.locator('#save-attendance-pin [name=latitude]').fill(String(gps.latitude));
     await admin.locator('#save-attendance-pin [name=longitude]').fill(String(gps.longitude));
     await admin.getByRole('button',{name:'Save site pin'}).click();
     await admin.getByText('Attendance site pin saved.').waitFor();
+    }
     const supervisor=await login(3019,'Guard');
     await supervisor.locator('#crew-2 summary').click();
     await supervisor.getByRole('button',{name:'Show attendance QR'}).click();
@@ -66,14 +70,17 @@ async function run(){
       };
     },image);
     await guard.getByRole('button',{name:'Scan supervisor QR'}).click();
-    await guard.getByRole('button',{name:'Verify location and check in'}).waitFor();
+    const checkIn=guard.getByRole('button',{name:requireLocation?'Verify location and check in':'Check in',exact:true});
+    await checkIn.waitFor();
+    if(requireLocation){
     await guard.context().setGeolocation({latitude:44,longitude:-79.64,accuracy:15});
     await guard.getByRole('button',{name:'Verify location and check in'}).click();
     await guard.getByText(/outside|inside the attendance area/i).waitFor();
     await guard.context().setGeolocation(gps);
-    await guard.getByRole('button',{name:'Verify location and check in'}).click();
-    await guard.getByText('Check-in verified with supervisor QR and location.').waitFor();
-    assert.equal(await guard.evaluate(()=>byId(2).mine.checkIn.method),'qr-location');
+    }
+    await checkIn.click();
+    await guard.getByText(requireLocation?'Check-in verified with supervisor QR and location.':'Check-in verified with supervisor QR.',{exact:true}).waitFor();
+    assert.equal(await guard.evaluate(()=>byId(2).mine.checkIn.method),requireLocation?'qr-location':'qr');
     await supervisor.getByRole('button',{name:'Close',exact:true}).click();
     await supervisor.locator('dialog.attendance-dialog').waitFor({state:'detached'});
     await supervisor.locator('#review-2-3009').getByText(/QR attendance verified/).waitFor();
@@ -84,7 +91,7 @@ async function run(){
     if(!result.ok())throw Error('Supervisor review returned HTTP '+result.status()+': '+await result.text());
     await supervisor.getByText('Supervisor feedback saved for dispatch.').waitFor();
     await admin.getByText('Supervisor fit reviews · 1').waitFor();
-    console.log('Shared server passed pilot login, site pin, supervisor QR, camera scan, off-site rejection, on-site attendance, and supervisor review.');
+    console.log('Shared server passed pilot login, supervisor QR, guard camera scan, attendance and supervisor review.');
   }finally{
     if(browser)await browser.close();
     if(server.exitCode===null){const ended=once(server,'exit');server.kill();await ended;}

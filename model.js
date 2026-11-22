@@ -182,7 +182,7 @@ function attendance(g,siteId){
       for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
       if(r.end<=data.now){
         for(const review of r.fitReviews||[]){
-          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr','qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
           const fit=stats(review.guard).fit;
           const previous=fit.get(r.site)||new Map();
           const scores=previous.get(r.id)||[];
@@ -342,12 +342,15 @@ function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}
   insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
   const assignment=r.assignments.find(a=>a.guard===guard);
   insist(assignment,'You are not assigned to this shift.');
-  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
-  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  if(['qr','qr-location'].includes(assignment.checkIn?.method))return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  const locationVerified=Number.isFinite(distance)&&Number.isFinite(accuracy);
+  assignment.checkIn=locationVerified
+    ? {at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy}
+    : {at:now,source:'Supervisor QR',method:'qr',issuer};
   r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
   (r.history ||= []).push({at:now,status:'QR and location checked',guard});
   versionRequests(snapshot,next);
-  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+  return {state:next,message:locationVerified?'Check-in verified with supervisor QR and location.':'Check-in verified with supervisor QR.'};
 }
 
 const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];

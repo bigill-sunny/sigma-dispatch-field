@@ -5,11 +5,11 @@ function attendanceScanPanel(){
   if(!data.qrAttendance)return '';
   const pending=attendanceLink();
   if(!pending)return '';
-  return `<section class="card"><h2>Supervisor QR scanned</h2><p>Share your current location to verify attendance.</p>${button('Verify location and check in','redeem-attendance',Number(pending[1]),'','primary')}</section>`;
+  return `<section class="card"><h2>Supervisor QR scanned</h2>${data.attendanceLocation?'<p>Share your current location to verify attendance.</p>':''}${button(data.attendanceLocation?'Verify location and check in':'Check in','redeem-attendance',Number(pending[1]),'','primary')}</section>`;
 }
 
 function attendancePinPanel(r){
-  if(!data.qrAttendance)return '';
+  if(!data.qrAttendance||!data.attendanceLocation)return '';
   return `<details class="details" id="attendance-pin"><summary>Attendance site pin · ${data.attendanceSites?.includes(r.site)?'Configured':'Required for QR check-in'}</summary>
     <p class="sub">Use the designated on-site meeting point. Updating the pin invalidates current QR codes for this site.</p>
     <form id="save-attendance-pin" data-site="${r.site}" class="fields"><label>Latitude<input name="latitude" inputmode="decimal" type="number" step="any" min="-90" max="90" required></label>
@@ -23,7 +23,7 @@ function supervisorCrewPanel(){
     <p>${shiftTime(r)}</p>${data.qrAttendance&&attendanceWindow(r,data.now)?button('Show attendance QR','issue-attendance',r.id,'','primary'):''}
     ${r.crew.length?r.crew.map(member=>`<form class="attendance-fit" id="review-${r.id}-${member.id}" data-booking-action="supervisor-review" data-request="${r.id}">
       <input name="guard" type="hidden" value="${member.id}"><strong>${safe(member.name)} · ${tiers[member.tier]}</strong>
-      <p class="sub">${member.post?'Assigned · '+member.post:'Volunteer · awaiting dispatch'}${member.checkedIn?' · '+(member.checkedIn==='qr-location'?'QR attendance verified':'Arrival recorded'):''}</p>
+      <p class="sub">${member.post?'Assigned · '+member.post:'Volunteer · awaiting dispatch'}${member.checkedIn?' · '+(['qr','qr-location'].includes(member.checkedIn)?'QR attendance verified':'Arrival recorded'):''}</p>
       <div class="fields"><label>Fit assessment<select name="verdict">${['Good fit','Needs coaching','Needs review'].map(v=>option(v,v,member.review?.verdict)).join('')}</select></label>
       <label>Observed skill<select name="signal">${fitSignals.map(v=>option(v,v,member.review?.signal)).join('')}</select></label>
       <label class="full">Observation<textarea name="note" required maxlength="300">${safe(member.review?.note||'')}</textarea></label></div>
@@ -55,7 +55,7 @@ function attendanceDialog(title){
   return dialog;
 }
 async function showAttendanceQr(requestId){
-  const location=await currentPosition();
+  const location=data.attendanceLocation?await currentPosition():{};
   const result=await attendancePost('issue',{requestId,...location});
   const dialog=attendanceDialog('Crew attendance QR');
   const content=dialog.querySelector('[data-attendance-content]');
@@ -124,7 +124,8 @@ async function scanAttendanceQr(){
 async function redeemAttendance(){
   const match=attendanceLink();
   if(!match)throw Error('Scan the supervisor’s current QR code.');
-  const result=await attendancePost('redeem',{requestId:Number(match[1]),code:match[2],...await currentPosition()});
+  const location=data.attendanceLocation?await currentPosition():{};
+  const result=await attendancePost('redeem',{requestId:Number(match[1]),code:match[2],...location});
   history.replaceState(null,'',location.pathname+location.search);
   await refresh();
   render();

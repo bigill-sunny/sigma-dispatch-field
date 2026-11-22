@@ -314,7 +314,7 @@ function attendance(g,siteId){
       for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
       if(r.end<=data.now){
         for(const review of r.fitReviews||[]){
-          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr','qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
           const fit=stats(review.guard).fit;
           const previous=fit.get(r.site)||new Map();
           const scores=previous.get(r.id)||[];
@@ -474,12 +474,15 @@ function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}
   insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
   const assignment=r.assignments.find(a=>a.guard===guard);
   insist(assignment,'You are not assigned to this shift.');
-  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
-  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  if(['qr','qr-location'].includes(assignment.checkIn?.method))return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  const locationVerified=Number.isFinite(distance)&&Number.isFinite(accuracy);
+  assignment.checkIn=locationVerified
+    ? {at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy}
+    : {at:now,source:'Supervisor QR',method:'qr',issuer};
   r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
   (r.history ||= []).push({at:now,status:'QR and location checked',guard});
   versionRequests(snapshot,next);
-  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+  return {state:next,message:locationVerified?'Check-in verified with supervisor QR and location.':'Check-in verified with supervisor QR.'};
 }
 
 const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];
@@ -1277,7 +1280,7 @@ function attendance(g,siteId){
       for(const event of r.history||[])if(event.status==='Guard cancelled')stats(event.guard).cancelled++;
       if(r.end<=data.now){
         for(const review of r.fitReviews||[]){
-          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
+          if(review.at<r.end||!r.assignments.some(a=>a.guard===review.guard&&['qr','qr-location','dispatcher'].includes(a.checkIn?.method)))continue;
           const fit=stats(review.guard).fit;
           const previous=fit.get(r.site)||new Map();
           const scores=previous.get(r.id)||[];
@@ -1437,12 +1440,15 @@ function recordQrArrival(snapshot,{requestId,guard,issuer,distance,accuracy,now}
   insist(assignedSupervisor(r,issuer),'The issuing supervisor is no longer assigned.');
   const assignment=r.assignments.find(a=>a.guard===guard);
   insist(assignment,'You are not assigned to this shift.');
-  if(assignment.checkIn?.method==='qr-location')return {state:snapshot,message:'Your verified check-in is already recorded.'};
-  assignment.checkIn={at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy};
+  if(['qr','qr-location'].includes(assignment.checkIn?.method))return {state:snapshot,message:'Your verified check-in is already recorded.'};
+  const locationVerified=Number.isFinite(distance)&&Number.isFinite(accuracy);
+  assignment.checkIn=locationVerified
+    ? {at:now,source:'Supervisor QR + location',method:'qr-location',issuer,distance,accuracy}
+    : {at:now,source:'Supervisor QR',method:'qr',issuer};
   r.arrivalFollowUp=r.assignments.every(a=>a.checkIn)?null:r.arrivalFollowUp;
   (r.history ||= []).push({at:now,status:'QR and location checked',guard});
   versionRequests(snapshot,next);
-  return {state:next,message:'Check-in verified with supervisor QR and location.'};
+  return {state:next,message:locationVerified?'Check-in verified with supervisor QR and location.':'Check-in verified with supervisor QR.'};
 }
 
 const fitSignals=['Site orientation','Role readiness','Communication','Procedure knowledge','Team coordination'];
@@ -3145,11 +3151,11 @@ function attendanceScanPanel(){
   if(!data.qrAttendance)return '';
   const pending=attendanceLink();
   if(!pending)return '';
-  return `<section class="card"><h2>Supervisor QR scanned</h2><p>Share your current location to verify attendance.</p>${button('Verify location and check in','redeem-attendance',Number(pending[1]),'','primary')}</section>`;
+  return `<section class="card"><h2>Supervisor QR scanned</h2>${data.attendanceLocation?'<p>Share your current location to verify attendance.</p>':''}${button(data.attendanceLocation?'Verify location and check in':'Check in','redeem-attendance',Number(pending[1]),'','primary')}</section>`;
 }
 
 function attendancePinPanel(r){
-  if(!data.qrAttendance)return '';
+  if(!data.qrAttendance||!data.attendanceLocation)return '';
   return `<details class="details" id="attendance-pin"><summary>Attendance site pin · ${data.attendanceSites?.includes(r.site)?'Configured':'Required for QR check-in'}</summary>
     <p class="sub">Use the designated on-site meeting point. Updating the pin invalidates current QR codes for this site.</p>
     <form id="save-attendance-pin" data-site="${r.site}" class="fields"><label>Latitude<input name="latitude" inputmode="decimal" type="number" step="any" min="-90" max="90" required></label>
@@ -3163,7 +3169,7 @@ function supervisorCrewPanel(){
     <p>${shiftTime(r)}</p>${data.qrAttendance&&attendanceWindow(r,data.now)?button('Show attendance QR','issue-attendance',r.id,'','primary'):''}
     ${r.crew.length?r.crew.map(member=>`<form class="attendance-fit" id="review-${r.id}-${member.id}" data-booking-action="supervisor-review" data-request="${r.id}">
       <input name="guard" type="hidden" value="${member.id}"><strong>${safe(member.name)} · ${tiers[member.tier]}</strong>
-      <p class="sub">${member.post?'Assigned · '+member.post:'Volunteer · awaiting dispatch'}${member.checkedIn?' · '+(member.checkedIn==='qr-location'?'QR attendance verified':'Arrival recorded'):''}</p>
+      <p class="sub">${member.post?'Assigned · '+member.post:'Volunteer · awaiting dispatch'}${member.checkedIn?' · '+(['qr','qr-location'].includes(member.checkedIn)?'QR attendance verified':'Arrival recorded'):''}</p>
       <div class="fields"><label>Fit assessment<select name="verdict">${['Good fit','Needs coaching','Needs review'].map(v=>option(v,v,member.review?.verdict)).join('')}</select></label>
       <label>Observed skill<select name="signal">${fitSignals.map(v=>option(v,v,member.review?.signal)).join('')}</select></label>
       <label class="full">Observation<textarea name="note" required maxlength="300">${safe(member.review?.note||'')}</textarea></label></div>
@@ -3195,7 +3201,7 @@ function attendanceDialog(title){
   return dialog;
 }
 async function showAttendanceQr(requestId){
-  const location=await currentPosition();
+  const location=data.attendanceLocation?await currentPosition():{};
   const result=await attendancePost('issue',{requestId,...location});
   const dialog=attendanceDialog('Crew attendance QR');
   const content=dialog.querySelector('[data-attendance-content]');
@@ -3264,7 +3270,8 @@ async function scanAttendanceQr(){
 async function redeemAttendance(){
   const match=attendanceLink();
   if(!match)throw Error('Scan the supervisor’s current QR code.');
-  const result=await attendancePost('redeem',{requestId:Number(match[1]),code:match[2],...await currentPosition()});
+  const location=data.attendanceLocation?await currentPosition():{};
+  const result=await attendancePost('redeem',{requestId:Number(match[1]),code:match[2],...location});
   history.replaceState(null,'',location.pathname+location.search);
   await refresh();
   render();

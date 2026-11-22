@@ -67,12 +67,14 @@ if(prepareDemoUsers){db.close();process.exit(0);}
 db.prepare('INSERT OR IGNORE INTO board VALUES(1,0,?)').run(JSON.stringify(seed('rush')));
 
 const push=require("./push.js")(db);
-const attendance=attendanceService(db);
+const attendanceLocation=process.env.SIGMA_ATTENDANCE_LOCATION==='on';
+const attendance=attendanceService(db,{requireLocation:attendanceLocation});
 const linked=db.prepare('SELECT endpoint FROM push_devices WHERE session=?');
 const registered=db.prepare('SELECT DISTINCT user_id FROM push_devices JOIN sessions ON session=token_hash WHERE expires>?');
 function workspace(state,account,token){
   const record=project(state,account);
   record.state.qrAttendance=true;
+  record.state.attendanceLocation=attendanceLocation;
   if(account.role==='admin'){
     record.state.attendanceSites=sites.filter(site=>attendance.hasPin(site.id)).map(site=>site.id);
     record.state.phoneGuards=registered.all(Date.now()-30*86400000).map(row=>row.user_id);
@@ -289,7 +291,7 @@ const server=http.createServer(async (req,res)=>{
       const row=read.get();
       const snapshot=JSON.parse(row.state);
       const shift=snapshot.requests.find(r=>r.id===Number(body.requestId));
-      if(url.pathname==='/api/attendance/pin'&&account.role==='admin'){
+      if(url.pathname==='/api/attendance/pin'&&account.role==='admin'&&attendanceLocation){
         const site=sites.find(s=>s.id===body.site);
         if(!site)return send(res,400,{error:'Choose a valid site.'});
         attendance.pin(site.id,body,snapshot.requests.filter(r=>r.site===site.id).map(r=>r.id));
